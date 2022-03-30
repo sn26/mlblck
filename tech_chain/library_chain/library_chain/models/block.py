@@ -10,15 +10,15 @@ class Block:
         self.timestamp = timestamp
         self.previous_hash = previous_hash
         self.mkrlroot = MerkleRoot(neural_data_transaction)
-        self.hash = self.set_hash()
-        self.nonce = None
+        self.nonce = 0.0
+        self.hash = None
         return 
 
     #HASH BLOCK FILLED WITH 
     #
     # Merkle root + nonce + previous_hash
     def set_hash(self):
-        return self.get_hash( list(self.nonce, self.previous_hash, self.mkrlroot))
+        return self.get_hash( list(self.timestamp, self.index, self.nonce, self.previous_hash, self.mkrlroot))
     
     #Function that calculate the hash from one transaction in a whole block
     def get_hash (self, data ): 

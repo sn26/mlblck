@@ -33,29 +33,29 @@ class MainChain:
         if self.chain[-1].hash != block.previous_hash:
             return False
         if self.proof(block): 
-            block.nonce = self.proof_cls.nonce(block)
+            block.nonce = self.proof_cls.nonce(block) #Sacamos la precisión del bloque
+            block.hash = block.set_hash() #Calculamos el hash del bloque
             self.chain.append(block)
 
-    
     def proof(self, block ):
         if( self.proof_cls.proof( self.chain[-1], block )): 
             return True
         return False
 
+    @classmethod
+    def check_chain_validity(self ):
+         
+
+    
+    #Añadir un bloque desde los nodos
     def mine(self):
         if not self.unconfirmed_transactions:
             return False
-
         last_block = self.last_block()
-
         new_block = Block(index=last_block.index + 1,
                           transactions=self.unconfirmed_transactions,
                           timestamp=time.time(),
                           previous_hash=last_block.hash)
-
-        proof = self.proof_of_work(new_block)
-        self.add_block(new_block, proof)
-
-        self.unconfirmed_transactions = []
-
+        self.add_block(new_block)
+        self.unconfirmed_transactions.clear()
         return True
