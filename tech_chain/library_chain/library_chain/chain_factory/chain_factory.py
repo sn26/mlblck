@@ -6,8 +6,8 @@ class ChainFactory:
     @staticmethod
     def create_chain( id ): 
         if id == 0: 
-            return MainChain(id, 1) 
+            return MainChain(id) 
         else: 
-            return RootChain(id, 1)
+            return RootChain(id, 1 )
 
    

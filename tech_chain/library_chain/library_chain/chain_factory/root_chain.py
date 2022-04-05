@@ -43,8 +43,7 @@ class RootChain:
             return True
         return False
 
-    @classmethod
-    def check_chain_validity(self ):
+   
          
 
     #Function to get a block by hash

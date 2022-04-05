@@ -36,8 +36,6 @@ class FederatedLearning:
         last_block_transactions = main_chain.last_block().transactions
         from i in range(0 , len(last_block_transactions)):
             if
-            
-
 
     #Function to get the median weights from clients
     def get_mean_client_weights(self , client_weights):

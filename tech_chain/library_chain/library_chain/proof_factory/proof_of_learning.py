@@ -1,9 +1,8 @@
 
 class ProofOfLearning: 
 
-    def __init__(self):
-        self.dataset = []
-        self.model = None
+    def __init__(self, dataset, preprocessor):
+        self.dataset = preprocessor.preprocess(dataset)
         return 
     
     #Function to know if a model is better than the actual block
@@ -39,12 +38,3 @@ class ProofOfLearning:
         print("PACC_5 MEDIA HANG : " , ape_media_hang)
         return prec_hang
 
-    
-    #Function that sets the dastaset which is going to use for checking the acc of a block
-    def set_dataset(self, dataset, preprocessor  ):
-        self.dataset = preprocessor.preprocess(dataset)
-        return  
-    
-
-
-        
