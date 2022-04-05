@@ -1,8 +1,7 @@
 from library_chain.proof_factory import ProofFactory
 from library_chain.models import Block 
-from requests import get
 from library_chain.api import FederatedLearning
-
+from library_chain.api import BlockRequestsSender
 
 class MainChain: 
  
@@ -41,34 +40,15 @@ class MainChain:
             self.chain.append(block)
 
     def proof(self, block ):
-        if( self.proof_cls.proof( self.chain[-1], block )): 
+        #Cogemos los pesos de todos los clientes, para generar un modelo con esos pesos
+        model_chain = NeuralModelSerializer.serialize(BlockRequestsSender.get_model_arch( self.last_block().neural_data_transaction[0]["rest"], self.last_block().neural_data_transaction[0]["hash"]))
+        fl = FederatedLearning(model)
+        model_block = fl.get_model_from_block( block)
+        if( self.proof_cls.proof(model_chain, model_block )): 
             return True
         return False
 
-    #Function that sends a requests to one server in a block
-    def get_weights(self , block_rest,  hash ): 
-        return str( get( self.block_rest, params={'hash': hash }).json()['weights']) ç
-    
-    #Function that sends a requests to one server in a block
-    def get_model_arch(self , block_rest,  hash ): 
-        return str( get( self.block_rest, params={'hash': hash }).json()['model_arch']) 
 
-
-    def get_model_from_block(self, block):
-        client_wghts = []
-        model_arch = None 
-        for i in range( 0 , len( block.neural_data_transaction)): 
-            if model_arch == None: 
-                model_arch = self.get_model_arch(block.neural_data_transaction["rest"] , block.neural_data_transaction["hash"] )
-            #La comp está mal, hay que echarle un vistazo 
-            
-            if model_arch != self.get_model_arch(block.neural_data_transaction["rest"] , block.neural_data_transaction["hash"] )
-                return False, "Invalid Blockchain"
-            #Tenemos que irnos a cada enlace rest y pillar el bloque con el hash concreto
-            client_wgths.append(self.get_weights(block.neural_data_transaction["rest"] , block.neural_data_transaction["hash"] ))
-        
-        FederatedLearning.
-            
     
     @classmethod
     def check_chain_validity(self ):
