@@ -33,7 +33,8 @@ class FederatedLearning:
 
     #Function to update all clients with the newest weights version at the main chain
     def update_leaf_weights(self, main_chain ): 
-        last_block_transactions = main_chain.last_block().transactions
+        last_block_weights = main_chain.last_block().model.get_weights()
+        #Nos tendremos que ir al último bloque añadido para actualizar los subbloques de los nodos hoja
         from i in range(0 , len(last_block_transactions)):
             if
 

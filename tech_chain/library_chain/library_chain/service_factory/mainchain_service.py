@@ -18,9 +18,14 @@ main_chain.create_genesis_block()
 peers = set() #Address to other participating on the network
 
 class MainChainService():
+    
+    #Endpoint que nos servirá en los nodos hoja para recibir el dataset de entrada
+    @app.route('/dataset',  methods=['GET'])
+    def get_pol_dataset(self ):
+        return main_chain.dataset
 
     @app.route('/newest_neural_prediction', methods=['GET'])
-    def get_neural_block_prediction(self). 
+    def get_neural_block_prediction(self):
         args = parser.parse_args() 
         return main_chain.get_response_from_last_block(args["X"] )
     

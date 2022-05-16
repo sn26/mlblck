@@ -3,6 +3,7 @@ from library_chain.models import Block, HashManager
 from library_chain.api import FederatedLearning
 from library_chain.api import BlockRequestsSender
 from libary_chain.tools import DataLoader
+from library_chain.transaction import Transaction
 
 class MainChain: 
     dataset = None
@@ -12,7 +13,7 @@ class MainChain:
     def __init__(self ): 
         #self.size_per_block = size_per_block #En los nodos hoja sólo dejaremos 1 de tam
         self.chain = []
-        self.proof_cls = ProofFactory(MainChain.identifier).create_proof()
+        self.proof_cls = ProofFactory(MainChain.identifier).create_proof()(MainChain.dataset, MainChain.preprocessor) #Making the Proof of learning
         self.unconfirmed_transactions = [] #Transacciones que se encuentran por incluir en la cadena
         return
     
@@ -29,6 +30,7 @@ class MainChain:
    
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
     def add_new_transaction(self, transaction): 
+        
         if self.check_new_transaction(transaction): 
             self.unconfirmed_transactions.append(transaction)
             return True
@@ -46,12 +48,12 @@ class MainChain:
             return True
         return False
 
+    #Deberemos añadir al proof en el recorrido hacia los bloques de abajo, la capacidad de coger los datasets de prueba de cada una 
     def proof(self, block ):
         #Cogemos los pesos de todos los clientes, para generar un modelo con esos pesos
-        model_chain = NeuralModelSerializer.serialize(BlockRequestsSender.get_model_arch( self.last_block().neural_data_transaction[0]["rest"], self.last_block().neural_data_transaction[0]["hash"]))
         fl = FederatedLearning(model)
         model_block = fl.get_model_from_block( block)
-        if( self.proof_cls.proof(model_chain, model_block )): 
+        if( self.proof_cls.proof(self.last_block().model, model_block )): 
             return True, model_block
         return False, None
     
@@ -59,12 +61,12 @@ class MainChain:
     def get_response_from_hash_block(self, hash, X  ): 
         for i in range(0 , len( chain)): 
             if chain[i].hash == hash: 
-                return str( chain[i].predict(X).argmax(axis=1)[0] )
+                return str( chain[i].model.predict(X).argmax(axis=1)[0] )
         return None
     
     #SSacamos la predicción del último bloque
     def get_response_from_last_block(self, X):
-        return str( self.last_block().predict(X).argmax(axis=1)[0] )
+        return str( self.last_block().model.predict(X).argmax(axis=1)[0] )
                 
     #Funcion que comprueba: 
     #HASH DEL BLOQUE CALCULANDO EL NONCE 

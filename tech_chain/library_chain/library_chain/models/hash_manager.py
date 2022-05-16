@@ -1,4 +1,4 @@
-
+from hashlib import sha256
 class HashManager: 
 
     #Sacamos los hahshes de cada uno de los datos del bloque 
