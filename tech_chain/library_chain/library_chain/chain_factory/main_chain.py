@@ -3,82 +3,89 @@ from library_chain.models import Block, HashManager
 from library_chain.api import FederatedLearning
 from library_chain.api import BlockRequestsSender
 from libary_chain.tools import DataLoader
-from library_chain.transaction import Transaction
+from library_chain.transactions import Transaction
+from lirary_chain.transactions import TransactionPool 
+from library_chain.transactions import TransactionTypes #Tipos de transacciones que permite la chain
+from library_chain.chain_account_gen_man import Account
+from library_chain.chain_factory import Common
 
 class MainChain: 
-    dataset = None
+
     preprocessor = None
     identifier = 0
 
     def __init__(self ): 
         #self.size_per_block = size_per_block #En los nodos hoja sólo dejaremos 1 de tam
         self.chain = []
-        self.proof_cls = ProofFactory(MainChain.identifier).create_proof()(MainChain.dataset, MainChain.preprocessor) #Making the Proof of learning
-        self.unconfirmed_transactions = [] #Transacciones que se encuentran por incluir en la cadena
+        #El dataset lo tendremos que sacar de la request que se realizará contra la blockchai de los usuarios, más concretamente, contra aquellos que sean validadores
+        self.proof_cls = ProofFactory(MainChain.identifier).create_proof() #Making the Proof of learning
+        self.unconfirmed_transactions = [] #No usamos una pool, las transacciones las tenemos en un array, por ahora
+        self.user_chain = "" #Endpoint de la chain de los usuarios, donde tendremos las pks de las cuentas
         return
+
+    @classmethod
+    def set_user_chain(cls, user_chain  ):
+        cls.user_chain = user_chain
     
     @property 
     def last_block(self ): 
         return self.chain[-1].hash
     
-    #Checking if a transaction has the minimum values to being a blog
-    def check_new_transaction(self, transaction):
-        if ( len(transaction.keys()) == 4 and "timestamp" in transaction.keys() and "author" in transaction.keys() and "hash" in transaction.keys() and "rest" in transaction.keys() ):
-            return True
-        return False
-
+    #Solo contaremos con transacciones que lleven los enlaces y el autor (Las transacciones del resto irán en otras cadenas, por lo que no nos hace falta mirar el tipo de la cadena adjuntada)
+    def check_new_transaction(self, transaction): 
+        return Common.check_new_transaction( ["timestamp", "pk", "hash", "rest", "digest"   ])
    
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
     def add_new_transaction(self, transaction): 
-        
-        if self.check_new_transaction(transaction): 
-            self.unconfirmed_transactions.append(transaction)
-            return True
-        return False
+        return Common.add_new_transactiokn( self, transaction )
 
     def add_block(self, block):
         if self.chain[-1].hash != block.previous_hash:
             return False
         result, model  =self.proof(block)
         if result == True: 
-            block.nonce = self.proof_cls.nonce(block) #Sacamos la precisión del bloque
+            block.nonce = self.proof_cls.nonce(block, self.get_dataset()) #Sacamos la precisión del bloque
             block.hash = block.set_hash() #Calculamos el hash del bloque
             block.model = model
+            #Firmamos el hash del bloque con el usuario validador de la chain de usuarios
+            block.signature = BlockRequestsSender.sign_leader(self.user_chain + "/sign", block.hash ) #Le pedimos a la chain que nos firme el bloque con su usuario validador
             self.chain.append(block)
             return True
         return False
+
+    #Tenemos que llamar al request sender para que nos devuelva el dataset del usuario validador
+    def get_dataset(self):
+        #Sacamos el dataset en base al usuario y el endpoint
+        return Common.get_dataset( self)
 
     #Deberemos añadir al proof en el recorrido hacia los bloques de abajo, la capacidad de coger los datasets de prueba de cada una 
     def proof(self, block ):
         #Cogemos los pesos de todos los clientes, para generar un modelo con esos pesos
         fl = FederatedLearning(model)
         model_block = fl.get_model_from_block( block)
-        if( self.proof_cls.proof(self.last_block().model, model_block )): 
+        if( self.proof_cls.proof(self.last_block().model, model_block, self.get_dataset( ) )): 
             return True, model_block
         return False, None
     
     #Function to get a response of a prediction fronm a specific block
     def get_response_from_hash_block(self, hash, X  ): 
-        for i in range(0 , len( chain)): 
-            if chain[i].hash == hash: 
-                return str( chain[i].model.predict(X).argmax(axis=1)[0] )
-        return None
+        return Common.get_response_from_hash_block( chain , hash ,X )
     
     #SSacamos la predicción del último bloque
     def get_response_from_last_block(self, X):
-        return str( self.last_block().model.predict(X).argmax(axis=1)[0] )
+        return Common.get_resposne_from_last_block( chain ,X)
                 
     #Funcion que comprueba: 
     #HASH DEL BLOQUE CALCULANDO EL NONCE 
     #PROOF DE LA PREC EN COMPARACION CON EL BLOQUE ANTERIOR
     @classmethod
     def is_valid_proof(cls, block , block_hash,  last_block ): 
-        proof_cls = ProofFactory(MainChain.identifier).create_proof()
+        proof_cls = ProofFactory(cls.identifier).create_proof()
         block_model = NeuralModelSerializer.serialize(BlockRequestsSender.get_model_arch( block.neural_data_transaction[0]["rest"], block.neural_data_transaction[0]["hash"]))
-        block_model.nonce = proof_cls.nonce(block)
+        block_model.nonce = proof_cls.nonce(block, self.get_dataset())
         if last_block != None: 
             last_block_model = NeuralModelSerializer.serialize(BlockRequestsSender.get_model_arch( last_block.neural_data_transaction[0]["rest"], last_block.neural_data_transaction[0]["hash"]))
-            if (proof_cls.proof( last_block_model, block_model )): 
+            if (proof_cls.proof( last_block_model, block_model, self.get_dataset() )): 
                 block.hash = HashManager.get_entire_block_hash( block )
                 if block.hash == block_hash and last_block.hash == block.previous_hash:
                     return True
@@ -106,30 +113,14 @@ class MainChain:
 
     #Function to get a block by hash
     def get_block_by_hash(self, hash): 
-        for i in range( 0 , len(chain )): 
-            if self.chain[i].hash == hash: 
-                return self.chain[i]
-        return None 
+        return Common.get_block_by_hash(self , hash)
+
+    def get_leader( self ): 
+        return Common.get_leader( self)
 
     #Añadir un bloque desde los nodos
     def mine(self):
-        if len(self.unconfirmed_transactions == 0 ): 
-            return False
-        last_block = self.last_block()
-        new_block = Block(index=last_block.index + 1,
-                        transactions=self.unconfirmed_transactions,
-                        timestamp=time.time(),
-                        previous_hash=last_block.hash)
-        return self.add_block(new_block)  
+        return Common.mine(self)
 
     def create_genesis_block(self ):
-        """
-        A function to generate genesis block and appends it to
-        the chain. The block has index 0, previous_hash as 0, and
-        a valid hash.
-        """
-        genesis_block = Block(0, [], 0, "0")
-        genesis_block.hash = genesis_block.get_hash()
-        self.chain.append(genesis_block)
-        return
-
+        return Common.create_genesis_block(  self)

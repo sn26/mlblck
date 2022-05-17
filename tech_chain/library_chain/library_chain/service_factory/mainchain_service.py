@@ -1,28 +1,26 @@
 from flask import Flask, request
 from flask_restful import reqparse, abort, Api, Resource
 from library_chain.api import ChainFactory
+from librar_chain.wallets import wallet
 import time 
 import requests
+from library_chain.transactions import TransactionPool
+from library_chain.transaction import TransactionTypes
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 app = Flask(__name__)
 api = Api(app)
 parser = reqparse.RequestParser()
-parser.add_argument('hash', 'rest' , 'author' )
+#PK -> CLAVE PUBLICA DEL AUTHOR DE UNA TRANSACCION 
+parser.add_argument('hash', 'rest' , 'pk' )
 main_chain = ChainFactory.create_chain(0)
-#Cargamos el dataset y el que se encargará de preprocesar los datos en la chain
-main_chain.dataset = DataLoader.load_dataset()
-main_chain.preprocessor = Preprocessor()
+#No necesitamos cargar ningun dataset, dado que nos vendrá por parte del usuario validador
+main_chain.preprocessor = None #Necesitareemos cargar un preprocesado de los datos, que nos vendrá por parte del usuario
 main_chain.create_genesis_block()
 peers = set() #Address to other participating on the network
 
 class MainChainService():
-    
-    #Endpoint que nos servirá en los nodos hoja para recibir el dataset de entrada
-    @app.route('/dataset',  methods=['GET'])
-    def get_pol_dataset(self ):
-        return main_chain.dataset
 
     @app.route('/newest_neural_prediction', methods=['GET'])
     def get_neural_block_prediction(self):
@@ -34,7 +32,7 @@ class MainChainService():
         args = parser.parse_args()
         return main_chain.get_response_from_hash_block(args['hash'], args['X'])
 
-    #Añadimos una nueva transaccion
+    #Añadimos una nueva transaccion (Lo tendremos que añadir a la nueva pool)
     @app.route('/new_transaction', methods=['POST'])
     def add_transaction( self ): 
         args = parser.parse_args()
@@ -44,7 +42,7 @@ class MainChainService():
         args.append("timestamp") = time.time()
         main_chain.add_new_transaction( args)
         return "Success", 201 
-        
+    
     #Sacamos toda la info de los bloques de la cadena
     @app.route('/chain', methods['GET'])
     def get_chain(self): 
@@ -58,7 +56,7 @@ class MainChainService():
     #Minado de las transacciones que no se hayan confirmado aún
     @app.route('/mine', methods['GET'])
     def mine(self):
-        if len( main_chain.unconfirmed_transactions ) == 0: 
+        if len( main_chain.transactionPool.transactions ) == 0: 
             return "No transactions to mine"
         result = main_chain.mine() 
         if result == False: 
@@ -108,16 +106,17 @@ class MainChainService():
                     block_data["transactions"],
                     block_data["timestamp"],
                     block_data["previous_hash"],
-                    block_data["nonce"])
+                    block_data["nonce"],
+                    block_data["pk"])
         if ( main_chain.add_block(block ) == False): 
             return "The block was discarded by the node", 400
         return "Block added to the chain", 201
 
     @app.route('/pending_transactions', methods=["GET"])
     def get_pending_transactions(): 
-        return json.dumps(main_chain.unconfirmed_transactions)
-
-
+        return json.dumps(main_chain.transactionPool.transactions)
+        
+        
     def create_chain_from_dump(self , chain_dump): 
         generated_chain = ChainFactory.create_chain(0)
         #Cargamos el dataset y el que se encargará de preprocesar los datos en la chain
@@ -144,7 +143,7 @@ class MainChainService():
         longest_chain = None 
         current_len = len(main_chain.chain)
         for node in peers:
-            response = requests.get('{}chain'.format(node))
+            response = requests.get('{}/chain'.format(node))
             length = response.json()['length']
             chain = response.json()['chain']
             if length > current_len and main_chain.check_chain_validity(chain):

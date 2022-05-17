@@ -1,20 +1,19 @@
 
 class ProofOfLearning: 
 
-    def __init__(self, dataset, preprocessor):
-        self.dataset = preprocessor.preprocess(dataset)
+    def __init__(self):
         return 
-    
+
     #Function to know if a model is better than the actual block
-    def proof(self, model_chain, model_block ):
-        if( self.precission_acc(model_chain.predict(self.dataset["x_test"]), self.dataset["y_test"]) >=  self.precission_acc(model_block.predict(self.dataset["x_test"]), self.dataset["y_test"])): 
+    def proof(self, model_chain, model_block, dataset ):
+        if( self.precission_acc(model_chain.predict(dataset["x_test"]), dataset["y_test"]) >=  self.precission_acc(model_block.predict(dataset["x_test"]), dataset["y_test"])): 
             return False
         #Si con el modelo se mejora la precisión, entonces será válido para ser añadido 
         return True
 
     #Function to get the nonce of a block
-    def nonce(self, block): 
-        return self.precission_acc(model.predict(self.dataset["x_test"]), self.dataset["y_test"])
+    def nonce(self, block, dataset): 
+        return self.precission_acc(model.predict(dataset["x_test"]), dataset["y_test"])
 
     #Function to get the precission rate of a model trained
     def precission_acc(self, y_pred , y_test):
