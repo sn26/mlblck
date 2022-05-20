@@ -1,12 +1,12 @@
 from flask import Flask, request
 from flask_restful import reqparse, abort, Api, Resource
-from library_chain.api import ChainFactory
-from librar_chain.wallets import wallet
+from library_chain.chain_factory import ChainFactory
+from library_chain.wallets import Wallet
 import time 
 import requests
-from library_chain.transactions import TransactionPool
-from library_chain.transaction import TransactionTypes
-
+from library_chain.transactions import TransactionTypes
+import os
+import json
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 app = Flask(__name__)
@@ -15,11 +15,12 @@ parser = reqparse.RequestParser()
 #PK -> CLAVE PUBLICA DEL AUTHOR DE UNA TRANSACCION 
 parser.add_argument('hash', 'rest' , 'pk' )
 root_chain = ChainFactory.create_chain(1)
-root_chain.create_genesis_block()
+wallet = Wallet("ADM00")
+root_chain.create_genesis_block(wallet)
 peers = set() #Address to other participating on the network
 
   
-class  RootChainEndpoint(Resource): 
+class  RootChainService(): 
     '''
     def __init__(self ) :
         print("PASAMOS")
@@ -35,12 +36,12 @@ class  RootChainEndpoint(Resource):
         for field in ["model_arch", "weights", "pk", "signature"]: 
             if field not in args: 
                 return "Invalid Transaction data", 404
-        args.append("timestamp") = time.time()
+        args["timestamp"] = time.time()
         root_chain.add_new_transaction( args)
         return "Success", 201 
 
     #Sacamos toda la info de los bloques de la cadena
-    @app.route('/chain', methods['GET'])
+    @app.route('/chain', methods=['GET'])
     def get_chain(self): 
         chain_data = []
         for block in root_chain.chain:
@@ -51,7 +52,7 @@ class  RootChainEndpoint(Resource):
     
 
     #Minado de las transacciones que no se hayan confirmado aún
-    @app.route('/mine', methods['GET'])
+    @app.route('/mine', methods=['GET'])
     def mine(self):
         if len( root_chain.transactionPool.transactions ) == 0: 
             return "No transactions to mine"
@@ -97,7 +98,7 @@ class  RootChainEndpoint(Resource):
             return response.content, response.status_code
     
     #Endpoint to get a block by hash
-    @app.rout("/get_block", methods=["GET"])
+    @app.route("/get_block", methods=["GET"])
     def get_block(self): 
         tx_data = request.get_json()
         return self.root_chain.get_block_by_hash(tx_data.get("hash")) 

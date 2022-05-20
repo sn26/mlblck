@@ -1,6 +1,6 @@
 import tensorflow_federated as tff
 from requests import get
-from library_chain.tools import NeuralModelSerializer
+from library_chain.federated_learning import NeuralModelSerializer
 from library_chain.api import BlockRequestsSender
 
 class FederatedLearning: 
@@ -16,7 +16,7 @@ class FederatedLearning:
             if model_arch == None: 
                 model_arch = BlockRequestsSender.get_model_arch(block.neural_data_transaction[i]["rest"] , block.neural_data_transaction[i]["hash"] )
             #La comparacion del modelo no es correcta, hay que echarle un vistazo
-            if model_arch != BlockRequestsSender.get_model_arch(block.neural_data_transaction[i]["rest"] , block.neural_data_transaction[i]["hash"] )
+            if model_arch != BlockRequestsSender.get_model_arch(block.neural_data_transaction[i]["rest"] , block.neural_data_transaction[i]["hash"] ): 
                 return False, "ERROR: Block not well formed"
             #Tenemos que irnos a cada enlace rest y pillar el bloque con el hash concreto
             client_wgths.append(BlockRequestsSender.get_weights(block.neural_data_transaction[i]["rest"] , block.neural_data_transaction[i]["hash"] ))
@@ -33,10 +33,10 @@ class FederatedLearning:
 
     #Function to update all clients with the newest weights version at the main chain
     def update_leaf_weights(self, main_chain ): 
-        last_block_weights = main_chain.last_block().model.get_weights()
+        last_block_weights = main_chain.last_block.model.get_weights()
         #Nos tendremos que ir al último bloque añadido para actualizar los subbloques de los nodos hoja
-        from i in range(0 , len(last_block_transactions)):
-            if
+        for i in range(0 , len(last_block_transactions)):
+            BlockRequestsSender.add_weights_transaction(last_block_transactions[i]["rest"] + "/add_transaction")
 
     #Function to get the median weights from clients
     def get_mean_client_weights(self , client_weights):
@@ -45,7 +45,7 @@ class FederatedLearning:
  
 
     #Funcion que usamos para actualizar los pesos del servidor
-    @tf.function
+    #@tf.function
     def server_update_fn( mean_client_weights ):
         # Assign the mean client weights to the server model.
         tf.nest.map_structure(lambda x, y: x.assign(y),

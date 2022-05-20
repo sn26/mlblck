@@ -1,12 +1,12 @@
 from flask import Flask, request
 from flask_restful import reqparse, abort, Api, Resource
-from library_chain.api import ChainFactory
-from librar_chain.wallets import wallet
+from library_chain.chain_factory import ChainFactory
+from library_chain.wallets import Wallet
 import time 
 import requests
-from library_chain.transactions import TransactionPool
-from library_chain.transaction import TransactionTypes
-
+from library_chain.transactions import TransactionTypes
+import os 
+import json 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 app = Flask(__name__)
@@ -17,7 +17,8 @@ parser.add_argument('hash', 'rest' , 'pk' )
 main_chain = ChainFactory.create_chain(0)
 #No necesitamos cargar ningun dataset, dado que nos vendrá por parte del usuario validador
 main_chain.preprocessor = None #Necesitareemos cargar un preprocesado de los datos, que nos vendrá por parte del usuario
-main_chain.create_genesis_block()
+wallet = Wallet("ADM00")
+main_chain.create_genesis_block(wallet)
 peers = set() #Address to other participating on the network
 
 class MainChainService():
@@ -39,12 +40,12 @@ class MainChainService():
         for field in ["hash", "rest", "author"]: 
             if field not in args: 
                 return "Invalid Transaction data", 404
-        args.append("timestamp") = time.time()
+        args["timestamp"]= time.time()
         main_chain.add_new_transaction( args)
         return "Success", 201 
     
     #Sacamos toda la info de los bloques de la cadena
-    @app.route('/chain', methods['GET'])
+    @app.route('/chain', methods=['GET'])
     def get_chain(self): 
         chain_data = []
         for block in main_chain.chain:
@@ -54,7 +55,7 @@ class MainChainService():
                         "peers": list(peers)})
 
     #Minado de las transacciones que no se hayan confirmado aún
-    @app.route('/mine', methods['GET'])
+    @app.route('/mine', methods=['GET'])
     def mine(self):
         if len( main_chain.transactionPool.transactions ) == 0: 
             return "No transactions to mine"
@@ -66,6 +67,7 @@ class MainChainService():
         if chain_length == len(main_chain.chain):
             # announce the recently mined block to the network
             self.announce_new_block(main_chain.last_block)
+        
         return "Block #{} is mined.".format(main_chain.last_block.index)
     
     #Endpoint to add peers

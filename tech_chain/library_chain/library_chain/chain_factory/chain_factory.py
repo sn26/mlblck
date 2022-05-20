@@ -8,9 +8,9 @@ class ChainFactory:
     def create_chain( id ): 
         if id == 0: 
             return MainChain() 
-        else if id == 1 : 
+        elif id == 1 : 
             return RootChain( )
-        else if id ==2 : 
+        elif id ==2 : 
             return AccManagerChain( )
 
    

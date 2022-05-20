@@ -1,7 +1,7 @@
-from library_chain.proof_factory import ProofFactory
-from library_chain.models import Block, HashManager 
-from libary_chain.tools import DataLoader
 from library_chain.chain_factory import Common
+from library_chain.proof_factory import ProofFactory
+from library_chain.api import BlockRequestsSender
+from library_chain.models import Block, HashManager 
 
 #EN LOS NODOS HOJA, CADA BLOQUE LLEVA: TRANSACTION { PESOS  + MODEL_ARCH }
 #PARA AÑADIR A LOS NODOS HOJA, SE ESTABLECE UN MODELO DE POL SOBRE LA PROPIA CADENA  (EL DATASET VIENE HEREDADO DEL NODO PADRE ( BUSCAR MANERA DE QUE CUANDO SE REGISTRE, SE REGISTRE EL NODO))
@@ -16,11 +16,15 @@ class RootChain:
     def __init__(self ): 
         #self.size_per_block = size_per_block #En los nodos hoja sólo dejaremos 1 de tam
         self.chain = []
-        self.proof_cls = ProofFactory(MainChain.identifier).create_proof()
+        self.proof_cls = ProofFactory.create_proof(RootChain.identifier)
         self.unconfirmed_transactions = [] #Transacciones que se encuentran por incluir en la cadena
         self.user_chain = "" #Enlace rest a nuestra cadena con los usuarios compartidos por todas las chains    
         return
     
+    @property 
+    def last_block(self ): 
+        return self.chain[-1].hash
+
     @classmethod
     def set_user_chain(cls , user_chain ): 
         cls.user_chain= user_chain 
@@ -32,7 +36,7 @@ class RootChain:
     
     #Checking if a transaction has the minimum values to being a blog
     def check_new_transaction(self, transaction):
-        return Common.check_new_transaction( ["timestamp", "pk", "model_arch". "weights", "digest"])
+        return Common.check_new_transaction( ["timestamp", "pk", "model_arch", "weights", "digest"], transaction)
     
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
     def add_new_transaction(self, transaction): 
@@ -47,9 +51,9 @@ class RootChain:
         result, model  =self.proof(block)
         if result == True: 
             block.nonce = self.proof_cls.nonce(block, self.get_dataset()) #Sacamos la precisión del bloque en base a los pesos del bloque y en base al dataset del validador que tenemos en la chain de los usuarios
-            block.hash = block.set_hash() #Calculamos el hash del bloque
+            block.hash = block.get_hash() #Calculamos el hash del bloque
             block.model = model
-            block.signature=  BlockRequestsSender.sign_leader(self.user_chain + "/sign")
+            block.signature=  BlockRequestsSender.sign_leader(self.user_chain + "/sign" , block.get_hash())
             self.chain.append(block)
             return True
         return False
@@ -60,7 +64,7 @@ class RootChain:
     #Lo tenemos que cambiar, dado que ahora el proof se realiza solamente sobre el modelo del bloque en el que nos encontramos y sobre el dataset que nos enontramos dentro del chain 
     def proof(self, block ):
         model_block = NeuralModelSerializer.serialize({ "model": block.transactions[0]["model_arch"] , "weights": block.transactions[0]["weights"]})
-        if( self.proof_cls.proof(self.last_block().model , model_block, self.get_dataset() )): 
+        if( self.proof_cls.proof(self.last_block.model , model_block, self.get_dataset() )): 
             return True, model_block
         return False, None
     
@@ -112,12 +116,12 @@ class RootChain:
     def get_block_by_hash(self, hash): 
         return Common.get_block_by_hash( self , hash)
 
-    def getLeader( self ): 
+    def get_leader( self ): 
         return Common.get_leader( self)
 
     #Añadir un bloque desde los nodos
     def mine(self):
         return Common.mine(self)
 
-    def create_genesis_block(self ):
-        return Common.create_genesis_block(self)
+    def create_genesis_block(self , wallet ):
+        return Common.create_genesis_block(self , wallet )

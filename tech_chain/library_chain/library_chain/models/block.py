@@ -1,6 +1,6 @@
 from hashlib import sha256
 from library_chain.models import HashManager
-from library_chain.tools import NeuralModelSerializer
+from library_chain.federated_learning import NeuralModelSerializer
 
 class Block: 
 
@@ -21,15 +21,19 @@ class Block:
     #
     # Merkle root + nonce + previous_hash
     def get_hash(self):
-        return HashManager.get_entire_block_hash(self)
+        end_hash = HashManager.get_entire_block_hash(self)
+        print("EL RESULTADO FINAL ES ")
+        print(end_hash )
+        return end_hash
 
     #Function that gets all data transaction
     def get_data(self ): 
-        return self.transactions 
+        return self.neural_data_transaction
 
     #Function to get the entire block in a readable format
     def to_string(self ): 
         return {
+            "Index": self.index,
             "Timestamp": self.timestamp, 
             "Last Hash": self.previous_hash, 
             "Hash": self.hash, 
@@ -37,7 +41,7 @@ class Block:
             "Validator": self.validator,
             "Signature": self.signature, #Firma del modelo 
             "Nonce": self.nonce, 
-            "Neural Data Transaction": self.transactions
+            "Neural Data Transaction": self.neural_data_transaction
         }
 
 

@@ -24,14 +24,14 @@ class ProofOfLearning:
             #SDC AND HANG? 
             ape_hang = abs(y_test[i][0] - y_pred[i][0] ) / y_test[i][0] 
             if ape_hang < 0.05: 
-            ape_media_hang +=1
+                ape_media_hang = ape_media_hang + 1
             if y_test[i][0] ==0.00 and y_pred[i][0] == 0.00:
                 p_hang = 1.0
                 #p_hang = 1 - abs(abs(y_pred[i][0]) - abs(y_test[i][0]))/abs(abs(y_test[i][0])+abs(y_pred[i][0]))
                 #if p_hang < 0.95: p_hang = 0.0
             else:
                 p_hang = 1 - (abs(abs(y_pred[i][0]) - abs(y_test[i][0]))/abs(abs(y_test[i][0])+abs(y_pred[i][0])))
-            prec_hang += p_hang 
+            prec_hang =  prec_hang + p_hang 
         prec_hang = prec_hang / len(y_pred)
         ape_media_hang = ape_media_hang /  len(y_pred)
         print("PACC_5 MEDIA HANG : " , ape_media_hang)

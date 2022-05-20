@@ -1,4 +1,4 @@
-from library_chain.tools import ChainUtils
+from library_chain.utils import ChainUtils
 from library_chain.transactions import TransactionFee
 import time
 from library_chain.models import HashManager
@@ -13,20 +13,24 @@ class Transaction:
         transaction["id"] = ChainUtils.gen_id()
         return transaction
 
+    
+
+
+    ''' 
     #Funcion que me verifica una transaccion
     @staticmethod
     def verifyTransaction( transaction ): 
         #Para sacar el hash de la transaccion, borraremos el hash de la transaccion y lo generaremos a mano
-        del transaction["digest"]
-        del transaction["timestamp"]
+        try: 
+            del transaction["digest"]
+            del transaction["timestamp"]
+        except Exception as e: 
+            passs
         return ChainUtils.verifySignature(
-            transaction.["pk"],
-            transaction.["signature"],
+            transaction["pk"],
+            transaction["signature"],
             HashManager.get_hash(transaction)
         )
-
-
-    ''' 
     
     #Function to sign a transaction with the validator
     @staticmethod

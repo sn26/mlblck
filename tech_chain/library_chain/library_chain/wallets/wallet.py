@@ -1,13 +1,14 @@
 from cryptography.hazmat.primitives import serialization 
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric import padding as Padding
-from hashlib import sha256
-from library_chain.transactions import Transaction 
+from cryptography.hazmat.primitives.asymmetric import padding 
+from cryptography.hazmat.primitives import hashes
+#from library_chain.transactions import Transaction 
 from library_chain.models import HashManager
 
 class Wallet: 
 
-    def __init__(self , secret  ): 
+    def __init__(self , secret  ):
+        secret = bytes(secret, 'utf-8') #Transformamos a Bytes para poder hacer el par de las claves
         self.balance =  0
         self.dataset_mem = None
         self.private_key_obj, self.public_key_obj = self.gen_key_pair(secret)
@@ -24,7 +25,7 @@ class Wallet:
     def get_dataset(self ): 
         return self.dataset_mem
     
-    def load_dataset( self, dataset ) #Tenemos que leer el dataset y cargarlo en memoria (No lo tendremos almacenado en nigun fichero)
+    def load_dataset( self, dataset ): 
         self.dataset_mem = dataset
         return 
 
@@ -50,22 +51,25 @@ class Wallet:
             "Balance": self.balance
         }
     
+    
     #Funcion mediante la cual firmaremos una transaccion (Eliminamos nuestra pk y el digest, para que luego al hacer el verify coincide, y porque no tiene sentido) 
     def signTransaction( self, transaction ): 
-        del transaction["digest"]
-        del transaction["pk"]
-        return self.sign( HashManager.get_hash( transaction ))
+        #Firmamos la transaccion quitando los parametros que no sean necesarios
+        return self.sign( HashManager.get_hash( HashManager.delete_unnecesary_params_from_transaction( transaction)  ))
 
     def sign(self , dataHash):
-        return self.private_key.sign(
+        if ( type(dataHash ) != bytes): 
+            dataHash = bytes(dataHash, 'utf-8')
+        return self.private_key_obj.sign(
             dataHash,
             padding.PSS(
-                mgf=padding.MGF1(sha256()),
+                mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
             ),
-            utils.Prehashed(sha256())
+            hashes.SHA256()
         )    
 
+    ''' 
     #Solo se podrán crear dos tipos de transacciones, las transacciones en las que nos hacemos validadores, por lo que habrá que incluir un dataset,
     # y las transacciones en las que añadimos unos nuevos pesos, que necesitaremos que sean validadas por un validador 
     def createTransaction( type, transaction, transaction_type, transactionPool): 
@@ -74,4 +78,7 @@ class Wallet:
         transaction.signTransaction( self, transaction )
         transactionPool.addTransaction(transaction)
         return transaction
+
+    ''' 
+    #Las transacciones las crearemos a mano
     

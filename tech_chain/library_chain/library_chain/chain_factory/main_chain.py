@@ -1,13 +1,12 @@
+from library_chain.chain_factory import Common
 from library_chain.proof_factory import ProofFactory
 from library_chain.models import Block, HashManager 
-from library_chain.api import FederatedLearning
+from library_chain.federated_learning import FederatedLearning
 from library_chain.api import BlockRequestsSender
-from libary_chain.tools import DataLoader
 from library_chain.transactions import Transaction
-from lirary_chain.transactions import TransactionPool 
+from library_chain.transactions import TransactionPool 
 from library_chain.transactions import TransactionTypes #Tipos de transacciones que permite la chain
-from library_chain.chain_account_gen_man import Account
-from library_chain.chain_factory import Common
+
 
 class MainChain: 
 
@@ -18,7 +17,7 @@ class MainChain:
         #self.size_per_block = size_per_block #En los nodos hoja sólo dejaremos 1 de tam
         self.chain = []
         #El dataset lo tendremos que sacar de la request que se realizará contra la blockchai de los usuarios, más concretamente, contra aquellos que sean validadores
-        self.proof_cls = ProofFactory(MainChain.identifier).create_proof() #Making the Proof of learning
+        self.proof_cls = ProofFactory.create_proof(MainChain.identifier) #Making the Proof of learning
         self.unconfirmed_transactions = [] #No usamos una pool, las transacciones las tenemos en un array, por ahora
         self.user_chain = "" #Endpoint de la chain de los usuarios, donde tendremos las pks de las cuentas
         return
@@ -29,7 +28,7 @@ class MainChain:
     
     @property 
     def last_block(self ): 
-        return self.chain[-1].hash
+        return self.chain[-1]
     
     #Solo contaremos con transacciones que lleven los enlaces y el autor (Las transacciones del resto irán en otras cadenas, por lo que no nos hace falta mirar el tipo de la cadena adjuntada)
     def check_new_transaction(self, transaction): 
@@ -40,12 +39,16 @@ class MainChain:
         return Common.add_new_transactiokn( self, transaction )
 
     def add_block(self, block):
+        print("REALIZAMOS LA COMRPOBACION DEL HASH")
         if self.chain[-1].hash != block.previous_hash:
+            print("LA COMPROBACION DEL HASH FALLA")
             return False
+        print("PASAMOS A HACER EL PROOF")
         result, model  =self.proof(block)
+        print("HEMOS PASADO EL PROOF")
         if result == True: 
             block.nonce = self.proof_cls.nonce(block, self.get_dataset()) #Sacamos la precisión del bloque
-            block.hash = block.set_hash() #Calculamos el hash del bloque
+            block.hash = block.get_hash() #Calculamos el hash del bloque
             block.model = model
             #Firmamos el hash del bloque con el usuario validador de la chain de usuarios
             block.signature = BlockRequestsSender.sign_leader(self.user_chain + "/sign", block.hash ) #Le pedimos a la chain que nos firme el bloque con su usuario validador
@@ -63,7 +66,7 @@ class MainChain:
         #Cogemos los pesos de todos los clientes, para generar un modelo con esos pesos
         fl = FederatedLearning(model)
         model_block = fl.get_model_from_block( block)
-        if( self.proof_cls.proof(self.last_block().model, model_block, self.get_dataset( ) )): 
+        if( self.proof_cls.proof(self.last_block.model, model_block, self.get_dataset( ) )): 
             return True, model_block
         return False, None
     
@@ -122,5 +125,5 @@ class MainChain:
     def mine(self):
         return Common.mine(self)
 
-    def create_genesis_block(self ):
-        return Common.create_genesis_block(  self)
+    def create_genesis_block(self, wallet ):
+        return Common.create_genesis_block(  self , wallet)
