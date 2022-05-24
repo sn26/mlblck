@@ -11,12 +11,12 @@ class HashManager:
     def isBase64(sb):
         try:
             if isinstance(sb, str):
-                    # If there's any unicode here, an exception will be thrown and the function will return false
-                    sb_bytes = bytes(sb, 'utf-8')
+                # If there's any unicode here, an exception will be thrown and the function will return false
+                sb_bytes = bytes(sb, 'utf-8')
             elif isinstance(sb, bytes):
-                    sb_bytes = sb
+                sb_bytes = sb
             else:
-                    raise ValueError("Argument must be string or bytes")
+                raise ValueError("Argument must be string or bytes")
             return base64.b64encode(base64.b64decode(sb_bytes)) == sb_bytes
         except Exception:
                 return False
@@ -26,8 +26,6 @@ class HashManager:
     @staticmethod
     def encode_signature( signature):
         #Codificamoso en base 64 la firma
-        print("LA FIRMA QUE ESTAMOS PASANDO PARA CODIFICAR ES ")
-        print(signature)
         if type(signature ) !=  bytes: 
             return signature
         if HashManager.isBase64( signature ) == True : return signature
@@ -54,7 +52,6 @@ class HashManager:
     @staticmethod 
     def delete_unnecesary_params_from_transaction(transaction ): 
         transactioncp = copy.deepcopy( transaction )
-        print("ESTOY ENTRANDO AQUI EN EL TCP")
         try: 
             del transactioncp["digest"]
         except Exception as e: 

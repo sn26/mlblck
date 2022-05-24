@@ -22,8 +22,6 @@ class Block:
     # Merkle root + nonce + previous_hash
     def get_hash(self):
         end_hash = HashManager.get_entire_block_hash(self)
-        print("EL RESULTADO FINAL ES ")
-        print(end_hash )
         return end_hash
 
     #Function that gets all data transaction
@@ -33,15 +31,15 @@ class Block:
     #Function to get the entire block in a readable format
     def to_string(self ): 
         return {
-            "Index": self.index,
-            "Timestamp": self.timestamp, 
-            "Last Hash": self.previous_hash, 
-            "Hash": self.hash, 
-            "Model": self.model, 
-            "Validator": self.validator,
-            "Signature": self.signature, #Firma del modelo 
-            "Nonce": self.nonce, 
-            "Neural Data Transaction": self.neural_data_transaction
+            "index": self.index,
+            "timestamp": self.timestamp, 
+            "previous_hash": self.previous_hash, 
+            "hash": self.hash, 
+            "model": self.model, 
+            "validator": self.validator,
+            "signature": self.signature, #Firma del modelo 
+            "nonce": self.nonce, 
+            "neural_data_transaction": self.neural_data_transaction
         }
 
 

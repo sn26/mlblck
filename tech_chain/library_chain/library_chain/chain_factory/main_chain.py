@@ -39,13 +39,9 @@ class MainChain:
         return Common.add_new_transactiokn( self, transaction )
 
     def add_block(self, block):
-        print("REALIZAMOS LA COMRPOBACION DEL HASH")
         if self.chain[-1].hash != block.previous_hash:
-            print("LA COMPROBACION DEL HASH FALLA")
             return False
-        print("PASAMOS A HACER EL PROOF")
         result, model  =self.proof(block)
-        print("HEMOS PASADO EL PROOF")
         if result == True: 
             block.nonce = self.proof_cls.nonce(block, self.get_dataset()) #Sacamos la precisión del bloque
             block.hash = block.get_hash() #Calculamos el hash del bloque

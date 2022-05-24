@@ -3,6 +3,7 @@ import time
 from library_chain.utils import ChainUtils
 from library_chain.models import Block, HashManager
 import base64
+import copy
 
 #Class that contains common chains funcionalities between chains
 class Common: 
@@ -12,13 +13,11 @@ class Common:
     #Tambien se comprobará la firma de la transaccion
     @staticmethod
     def check_new_transaction( keys, transaction ): 
-        print( "Estamos entrando")
         for key in transaction.keys(): 
             if key not in keys: 
                 print( "ERROR 400: Not Valid Keys ") 
                 print(keys) 
                 return False
-        print("Valid Keys")
         return True
 
     #Comprobamos la firma en base al hash, la pk del que ha firmado y contra el endpoint de la chain de los usuarios
@@ -27,14 +26,11 @@ class Common:
         if  type(signature) != bytes: 
             #Si nos han pasado una firma que está en b64 
             signature = HashManager.decode_signature(signature)
-        print("LA FIRMA QUE ME ESTÁ ENTRANDO ES ")
-        print(signature)
         return ChainUtils.verify_signature(pk, signature, hash )
         #return BlockRequestsSender.verify_signature( user_chain , signature, hash , pk) 
 
     @staticmethod
     def get_hash_from_transaction( transaction ): 
-        print("ESTAMOS ENTRANDO A SACAR EL HASH DE LA TRANSACCION")
         return HashManager.get_hash(HashManager.delete_unnecesary_params_from_transaction(transaction))
 
     @staticmethod 
@@ -78,15 +74,14 @@ class Common:
     @staticmethod
     def mine(chain):
         if len(chain.unconfirmed_transactions) == 0 : 
+            print("ERROR: There aren't transactions to Mine")
             return False
-        print("HEMOS PASADO LA COMPROBACION DE LAS UNCONFIRMED TRANSACTIONS")
         last_block = chain.last_block
         new_block = Block(index=last_block.index + 1,
-                        transactions=chain.unconfirmed_transactions,
+                        transactions=copy.deepcopy(chain.unconfirmed_transactions ),
                         timestamp=time.time(),
-                        previous_hash=last_block.hash, 
+                        previous_hash=copy.deepcopy(last_block.hash),  #Si no hacemos un deep copy, luego no podremos borrar las transacciones
                         validator= chain.get_leader())
-        print("PASAMOS A AÑADIR EL BLOQUE DESDE LA CHAIN")
         return chain.add_block(new_block)  
 
     @staticmethod

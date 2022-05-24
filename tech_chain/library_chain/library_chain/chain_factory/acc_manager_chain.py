@@ -37,7 +37,6 @@ class AccManagerChain:
     
     #Function to get the leader validator
     def get_leader(self ):
-        print("ESTAMOS PASANDO A COMP EL LEADER") 
         return self.validators.getMax() #Returns the leader address 
 
     #Function that returns the balance of an specific account
@@ -46,7 +45,6 @@ class AccManagerChain:
     
     #Verificamos que la firma del usuario correcto
     def check_new_transaction(self, transaction ): 
-        print("ESTAMOS ENTRANDO A HACER EL CHECK DE LA NUEVA TRANSACCION")
         return Common.check_new_transaction( ["fee", "transaction", "amount", "pk", "signature", "timestamp", "to", "digest"], transaction )
 
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
@@ -77,22 +75,22 @@ class AccManagerChain:
     #METODOS PARA REALIZAR EL PROOF DE LAS CADENAS
     def proof(self, block ): 
         #Nuestro proof consistirá en firmar el bloque con el validador 
-        print("PASAMOS A COMPROBAR AL LEADER")
         if self.get_leader( ) != None: 
             #Comprobamos todas las transacciones que irán dentro del bloque, para saber si es correcto o no lo es 
-            print("COMPROBAMOS LA VALIDEZ DE LAS TRANSACCIONES")
             return self.check_validity_transactions(block)
         return False
     
     #Funcion mediante la cual verificamos una transacción (Verificamos que sea correcta la firma de la transaccion, a lo mejor lo deberiamos de cambiar a transacciones)
-    def verifyTransaction(self , transaction):
+    @classmethod 
+    def verify_transaction(cls , transaction):
         
         return Common.verify_signature(AccManagerChain.user_chain, transaction["signature"], Common.get_hash_from_transaction( transaction) , transaction["pk"]) 
 
+    @classmethod
     #Funcion mediante la cual validamos las transacciones de nuestro bloque
-    def check_validity_transactions(self , block): 
+    def check_validity_transactions(cls , block): 
         for i in range( 0 ,  len(block.neural_data_transaction )): 
-            if self.verifyTransaction( block.neural_data_transaction[i]) == False: 
+            if cls.verify_transaction( block.neural_data_transaction[i]) == False: 
                 return False
         return True 
 
@@ -113,7 +111,7 @@ class AccManagerChain:
         return False
 
     #Comprobamos la firma del bloque 
-    def verifySignBlock(self, block , leader):
+    def verify_sign_block(self, block , leader):
         #Miramos que la firma del bloque coincida con la firma del leader 
         return Common.verify_signature(AccManagerChain.user_chain,  block.signature, block.get_hash() , leader ) 
 
@@ -123,63 +121,62 @@ class AccManagerChain:
         #block -> Bloque que me viene de la otra chain
         #PARA LA BLOCKCHAIN DE LOS USERS NO SE HACE UN POL 
         #proof_cls =ProofFactory(cls.identifier).create_proof()
-        print( "ESTAMOS ENTRANDO EN LA COMPROBACION VALID PROOF ")
-        print(block )
-        print(block_hash )
-        print(last_block)
         
         if last_block != None: 
-            print("ESTAMOS ENTRANDO A MIRAR EL ULT BLOQUE")
             #if( proof_cls.proof( last_block , block)):
             block_hash_cp = HashManager.get_entire_block_hash( block)
-            print( "LA FIRMA DEL BLOQUE ES ")
-            print(block.signature )
-            if block_hash_cp == block_hash and last_block.hash == block.previous_hash and cls.check_validity_transactions(cls, block) and cls.verifyBlock(cls ,block )  and cls.verifyLeader( cls , block, cls.get_leader(cls , block , cls.get_leader_by_block( cls, block))): 
+            print("ESTAMOS ENTRANDO EN EL RESTO DE LOS BLOQUES")
+            print( block_hash_cp)
+            print(block_hash)
+            print(block_hash_cp == block_hash)
+            print(last_block.get_hash() == block.previous_hash)
+            print(cls.check_validity_transactions( block) )
+            print(cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )))
+            print(cls.verify_leader( cls, block))
+            if block_hash_cp == block_hash and last_block.get_hash() == block.previous_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )) and cls.verify_leader( cls, block): 
                 return True
         block_hash_cp = HashManager.get_entire_block_hash(block)
         #Si el bloque ha sido firmado correctamente, y ha sido firmado por un leader, lo daremos por bueno
-        if block_hash_cp == block_hash and cls.check_validity_transactions(cls, block) and  cls.verifySignBlock(cls, block , cls.get_leader_by_block(cls, block )) and cls.verify_leader( cls, block): 
-            print("HEMOS ENTRADO, DADO QUE NOS COINCIDEN TODOS LOS DATOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        if block_hash_cp == block_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )) and cls.verify_leader( cls, block): 
+            print("EL PRIMER BLOQUE HA DADO POSITIVO")
             return True 
         return False 
 
     @classmethod
     def check_chain_validity(cls, chain): 
-        print("HHHHH -> ESTAMOS ENTRANDO A COMPROBAR LA VAL DE LA CHAIN")
         result = True
         previous_hash ="0"
         last_block = None 
         for block in chain: 
-            print(block ) #Printeamos el json del bloque
+            print("El bloque que estamos probando es ")
             block = BlockSerializer.serialize(block) #Serializamos el bloque para poder utilizarlo como obj
-            print(block.to_string()) #Printeamos el bloque
-        
+            print(block.to_string())
             block_hash = block.hash
             delattr(block, "hash")
-            print("ESTAMOS PASANDO A COMRPOBAR EL VALID PROOF")
+            print("El bloque hash es ")
+            print(block_hash)
             #En el valid proof estamos comprobando el bloque, con el bloque anterior al bloque comprobado, pero de la misma chain
             if not cls.is_valid_proof( block , block_hash , last_block ):
+                print("EL PROOF HA DADO NEGATIVO")
                 return False 
             last_block= block
         return True
     
     def add_block(self, block): 
-        if self.chain[-1].hash != block.previous_hash: 
-            print("NO ESTAMOS PASANDO LA COMPROBACION DE LOS HASHES")
-            print(self.chain[-1].hash )
-            print(block.previous_hash)
+        if self.chain[-1].hash != block.previous_hash:
             return False
         result = self.proof( block)
-        print("EL RESULT DEL PROOF ES ")
-        print( result)
         if result == True: 
             block.nonce = self.validators.getNonce() #En realidad este valor nos das un poco igual 
-            block.hash = block.get_hash()
+            
             block.model = None 
+            block.hash = block.get_hash()
             block.signature =  HashManager.encode_signature( BlockRequestsSender.sign_leader( AccManagerChain.user_chain  + "/sign", block.get_hash( )) )
+            print( block.to_string( ))
             self.chain.append(block)
             #Una vez hemos añadido el bloque, pasamos a ejecutarlo
             self.execute_block( )
+            self.unconfirmed_transactions.clear() #Limpiamos las transacciones 
             return True
         return False 
 

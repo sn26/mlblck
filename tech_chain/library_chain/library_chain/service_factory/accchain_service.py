@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_restful import reqparse, abort, Api, Resource
-from library_chain.chain_factory import ChainFactory
+from library_chain.chain_factory import ChainFactory, ChainSerializer
 from library_chain.wallets import Wallet
 import time 
 import requests
@@ -9,6 +9,7 @@ import json
 import base64
 import gzip
 from library_chain.service_factory import ServiceTools
+from library_chain.models import BlockSerializer
 from library_chain.models import HashManager
 app = Flask(__name__)
 api = Api(app)
@@ -16,6 +17,7 @@ parser = reqparse.RequestParser()
 parser.add_argument('transaction_b64')
 parser.add_argument('signature')
 parser.add_argument('block_hash')
+parser.add_argument('node_address') #Lo utilizaremos como param para añadir nodos a nuestra cadena
 
 
 '''
@@ -34,16 +36,16 @@ class AccChainService(Resource):
 
     acc_chain = ChainFactory.create_chain(2)
     wallet = None #Antes de iniciar el servicio, los datos internos de la wallet no estarán disponibles dentro del servicio, necesitaremos tenerlos dentro de nuestra wallet
-
-    
     peers = [] #Address to other participating on the network
     wallet = Wallet("ADM00")
-    acc_chain.accounts.addresses.append( wallet.public_key )
-    acc_chain.accounts.balance[wallet.public_key] = 0
-    acc_chain.validators.balance[wallet.public_key] = 0
-    acc_chain.validators.datasets[wallet.public_key] = []
-    #acc_chain.validators.addresses.append(wallet.public_key)
-    acc_chain.create_genesis_block(wallet) #Le pasamos la wallet para firmar el bloque
+    
+    @staticmethod
+    def wallet_setup( ): 
+        AccChainService.acc_chain.accounts.addresses.append( AccChainService.wallet.public_key )
+        AccChainService.acc_chain.accounts.balance[AccChainService.wallet.public_key] = 0
+        AccChainService.acc_chain.validators.balance[AccChainService.wallet.public_key] = 0
+        AccChainService.acc_chain.validators.datasets[AccChainService.wallet.public_key] = []
+        return 
 
     #Añadimos una nueva transaccion (Lo tendremos que añadir a la nueva pool)
     #Cuando añadimos una nueva transacción, nos referimos a las que son de transferencia de dinero
@@ -168,10 +170,10 @@ class AccChainService(Resource):
     def get_chain(): 
         chain_data = []
         for block in AccChainService.acc_chain.chain:
-            chain_data.append(block.__dict__)
+            chain_data.append(block.to_string())
         return json.dumps({"length": len(chain_data),
                         "chain": chain_data,
-                        "peers": list(AccChainService.peers)})
+                        "peers": AccChainService.peers})
     
     
     #Funcionan (Probado sólo cuando somos validadores)
@@ -180,8 +182,6 @@ class AccChainService(Resource):
     def sign():
         #Tenemos que comprobar que seamos los lideres 
         args =  parser.parse_args() 
-        print( "NUESTROS ARGUMENTOS DE ENTRADA SON ")
-        print(args)
         if ( args["block_hash"] == None ):
              
             return json.dumps( {
@@ -228,50 +228,48 @@ class AccChainService(Resource):
         if len( AccChainService.acc_chain.unconfirmed_transactions ) == 0: 
             return {"Result": "No Transactions to mine."}
         result = AccChainService.acc_chain.mine() 
-        print("NUESTRO RESULT ES ")
-        print(result)
         if result == False: 
             return {"Result": "ERROR: Invalid transactions" }
         chain_length = len(AccChainService.acc_chain.chain) 
+        #return {"Result": "Evitamos el consenso"}
         print(" Estamos entrando para realizar el consenso con todas las peers ")
         if( AccChainService.consensus() == True):
-            print("ESTAMOS ENTRANDO")
-            AccChainService.acc_chain.unconfirmed_transactions.clear() #Limpiamos las transacciones una vez hemos minado el bloque
+            #AccChainService.acc_chain.unconfirmed_transactions.clear() #Limpiamos las transacciones una vez hemos minado el bloque
             return {"Result": "Consesus from another node. No block mined but chain changed", "Chain": AccChainService.get_chain() } 
         if chain_length == len(AccChainService.acc_chain.chain):
             # announce the recently mined block to the network
-            print("ESTAMOS ENTRANDO A ANUNCIAR UN BLOQUE")
             AccChainService.announce_new_block(AccChainService.acc_chain.last_block)
         AccChainService.acc_chain.unconfirmed_transactions.clear() #Limpiamos las transacciones una vez hemos minado el bloque
         return {"Result": "Block #{} is mined.".format(AccChainService.acc_chain.last_block.index) }
 
+    #Funcionando
     #Endpoint to add AccChainService.peers 
     @app.route('/register_node', methods=['POST']) 
     def register_peer():
         node_address = request.get_json()["node_address"]
-        if not node_address: 
-            return "ERROR: Invalid data" 
-        AccChainService.peers.add( node_address )
-        return self.get_chain()
+        if node_address == None:  
+            return "ERROR: Invalid data" , 400 
+        AccChainService.peers.append( node_address )
+        return AccChainService.get_chain()
     
+    #Funcionando
     @app.route('/register_with' , methods= ['POST'])
     def register_with_existing_node( ): 
         node_address = request.get_json()["node_address"]
-        if not node_address:
-            return "Invalid data", 400
+        if node_address == None:
+            return "Error: Invalid data", 400
         data = {"node_address": request.host_url}
         headers = {'Content-Type': "application/json"}
         # Make a request to register with remote node and obtain information
         response = requests.post(node_address + "/register_node",
                                 data=json.dumps(data), headers=headers)
         if response.status_code == 200:
-            global acc_chain
-            global peers
             # update chain and the peers
             chain_dump = response.json()['chain']
-            AccChainService.acc_chain = create_chain_from_dump(chain_dump)
+            AccChainService.create_chain_from_dump(chain_dump)
             #Nos añadimos a la chain
-            AccChainService.peers.append(response.json()['peers'])
+            for i in range( 0 , len( response.json()['peers'])):
+                AccChainService.peers.append(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
             return "Registration successful", 200
         else:
             # if something goes wrong, pass it on to the API response
@@ -286,12 +284,7 @@ class AccChainService(Resource):
     @app.route('/add_block', methods=["POST"])
     def verify_and_add_block(): 
         block_data = request.get_json()
-        block = Block(block_data["index"],
-                    block_data["transactions"],
-                    block_data["timestamp"],
-                    block_data["previous_hash"],
-                    block_data["nonce"], 
-                    block_data["pk"])
+        block = BlockSerializer.serialize( block_data)
         if ( AccChainService.acc_chain.add_block(block ) == False): 
             return "The block was discarded by the node", 400
         return "Block added to the chain", 201
@@ -324,8 +317,8 @@ class AccChainService(Resource):
     def get_validators( ): 
         return {"validators": AccChainService.acc_chain.validators.rest_addresses}
     
-    def set_new_validator( self): 
-        print("Seteamos un nuevo validador inicial")
+    @staticmethod
+    def set_new_validator( ): 
         AccChainService.acc_chain.validators.validators.append(AccChainService.wallet.public_key)
         AccChainService.acc_chain.validators.balance[AccChainService.wallet.public_key] = 100
         AccChainService.acc_chain.validators.datasets[AccChainService.wallet.public_key] = []
@@ -337,25 +330,12 @@ class AccChainService(Resource):
         AccChainService.acc_chain.set_user_chain( url  )
         return
 
-    def create_chain_from_dump(self , chain_dump): 
-        generated_chain = ChainFactory.create_chain(2)
-        #Cargamos el dataset y el que se encargará de preprocesar los datos en la chain
-        generated_chain.dataset = DataLoader.load_dataset()
-        generated_chain.preprocessor = Preprocessor()
-        generated_chain.create_genesis_block()
-        for idx, block_data in enumerate(chain_dump):
-            if idx == 0:
-                continue  # skip genesis block
-            block = Block(block_data["index"],
-                        block_data["transactions"],
-                        block_data["timestamp"],
-                        block_data["previous_hash"],
-                        block_data["nonce"])
-           
-            added = generated_blockchain.add_block(block)
-            if not added:
-                raise Exception("ERROR: Chain Security Fail")
-        return generated_blockchain    
+    @staticmethod 
+    def create_chain_from_dump( chain_dump): 
+        AccChainService.acc_chain = ChainSerializer.serialize_acc_chain( chain_dump ) #Serializamos la chain de los usuarios, para que coincida con lo que tenemos interno
+        AccChainService.wallet_setup( )
+        AccChainService.set_new_validator()
+        return 
 
     def generate_encoded_transaction_and_signature_for_test(self ): 
         
@@ -370,41 +350,47 @@ class AccChainService(Resource):
 
     #FUNCIONANDO CUANDO NO HAY PEERS (AHORA, AÑADIREMOS UNA PEER SIN DATOS Y OTRA CON UN NUM MAYOR DE TRANSACCIONES A LAS NUESTRAS)
     def consensus( ): 
-        global acc_chain
         longest_chain = None 
         current_len = len(AccChainService.acc_chain.chain)
-        print("ESTAMOS PASANDO A REALIZAR EL CONSENSO")
         for node in AccChainService.peers:
+            print("Nuestros nodos son ")
+            print( node)
             response = requests.get('{}/chain'.format(node))
             length = response.json()['length']
             chain = response.json()['chain']
+            print("LA CHAIN QUE ESTAMOS PROBANDO ES ")
+            print(chain)
+            print("LA LENGTH QUE TENEMOS DE LA CHAIN ES ")
+            print(length)
             print("NUESTRA LEN ACTUAL ES ")
-            print( current_len)
-            print("LA LEN QUE HEMOS SACADO DE LA CHAIN ES ")
-            print(length )#No se saca bien la length de la otra chain!! REVISAR 
-            print("LA VAL DE LA CHAIN ES ")
-            print( AccChainService.acc_chain.check_chain_validity(chain))
+            print(current_len)
+            print("CUANDO COMPROBAMOS LA VAL DE LA CHAIN NOS DA ")
+            print(AccChainService.acc_chain.check_chain_validity(chain))
             if length > current_len and AccChainService.acc_chain.check_chain_validity(chain) == True:
-                print("HEMOS ENTRADO Y ESTAMOS PONIENDO LA VAL DE LA CHAIN")
                 current_len = length
                 longest_chain = chain
         print(" HEMOS SACADO EL CONSENSO")
         if longest_chain != None:
-            print("ESTAMOS CAMBIANDO NUESTRA CHAIN")
-            AccChainService.acc_chain = longest_chain
+            print("ESTAMOS CAMBIANDO NUESTRA CHAIN!!!!!!!!!!!!!!!")
+            
+            AccChainService.acc_chain = ChainSerializer.serialize_acc_chain( longest_chain ) #Serializamos la chain de los usuarios, para que coincida con lo que tenemos interno
+            AccChainService.wallet_setup( )
+            AccChainService.set_new_validator() #Seteamos nuevamente nuestra wallet como validadora
             return True
         return False
     
     def announce_new_block( block ): 
         for peer in AccChainService.peers:
-            url = "{}add_block".format(peer)
+            url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,
-                        data=json.dumps(block.__dict__, sort_keys=True),
+                        data=json.dumps(block.to_string(), sort_keys=True),
                         headers=headers)
 
     def launchme( self , host , port): 
         #api.add_resource(AccChainService , '/UserChain')
+        AccChainService.wallet_setup( )
+        AccChainService.acc_chain.create_genesis_block(AccChainService.wallet) #Le pasamos la wallet para firmar el bloque
         app.run( host= host , port=port, debug =False )
 
 
@@ -412,4 +398,5 @@ class AccChainService(Resource):
 
 
 if __name__ == "__main__":
+    
     print("ESTAMOS LANZANDO EL MAIN")    
