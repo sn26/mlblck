@@ -2,7 +2,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding 
 from cryptography.hazmat.primitives import hashes
-#from library_chain.transactions import Transaction 
+#from library_chain.transactions import Transactionf
 from library_chain.models import HashManager
 
 class Wallet: 

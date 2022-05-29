@@ -37,6 +37,7 @@ class Common:
     def add_new_transaction( chain , transaction): 
         if chain.check_new_transaction(transaction): 
             if Common.verify_signature(chain.user_chain, transaction["signature"], Common.get_hash_from_transaction( transaction) , transaction["pk"]) == True: 
+                transaction["digest"] = Common.get_hash_from_transaction( transaction) #Meteremos el hash de la transaccion
                 if type(transaction["signature"]) == bytes: 
                     transaction["signature"] = HashManager.encode_signature(transaction["signature"]) #Codificamos a b64 la firma
                 chain.unconfirmed_transactions.append(transaction)

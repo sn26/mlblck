@@ -18,6 +18,7 @@ parser.add_argument('transaction_b64')
 parser.add_argument('signature')
 parser.add_argument('block_hash')
 parser.add_argument('node_address') #Lo utilizaremos como param para añadir nodos a nuestra cadena
+parser.add_argument('pk') #Pk que usaremos para la ico
 
 
 '''
@@ -78,16 +79,17 @@ class AccChainService(Resource):
         args = ServiceTools.decode_transaction( args["transaction_b64"]) #Decodificamos la transaccion que nos viene en base 64 
         args["signature"] = signature
         #Una vez tenemos la transaccion, sacamos  la firma 
-        for field in ["pk", "fee", "amount", "signature", "to", "digest"]: 
+        for field in ["pk", "fee", "amount", "signature", "to", "digest" ,  "validator_endpoint_address", "dataset"]: 
             if field not in args: 
                 return "Invalid Transaction data", 404 
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
             "fee": args["fee"], 
             "amount": args["amount"], 
+            "dataset": args["dataset"], 
             "signature": args["signature"], 
             "to": args["to"], 
-            "validator_endpoint_address": args["address"], #Necesitamos guardarnos la direccion del validador
+            "validator_endpoint_address": args[ "validator_endpoint_address"], #Necesitamos guardarnos la direccion del validador
             "digest": args["digest"], 
             "timestamp": time.time(),
             "transaction": TransactionTypes.VALIDATOR
@@ -126,7 +128,7 @@ class AccChainService(Resource):
         args = ServiceTools.decode_transaction( args["transaction_b64"]) #Decodificamos la transaccion que nos viene en base 64 
         args["signature"] = signature
         #Una vez tenemos la transaccion, sacamos  la firma 
-        for field in ["pk", "fee", "amount", "signature", "to", "digest" , "data" ]:  
+        for field in ["pk", "fee", "amount", "signature", "to", "digest" , "dataset" ]:  
             if field not in args: 
                 return "Invalid Transaction data", 404 
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
@@ -134,7 +136,7 @@ class AccChainService(Resource):
             "fee": args["fee"], 
             "amount": args["amount"], 
             "signature": args["signature"], 
-            "data": args["data"], #Es necesario incluir la data de la transaccion (Data que usaremos para validar en las cadenas superiores)
+            "dataset": args["dataset"], #Es necesario incluir la data de la transaccion (Data que usaremos para validar en las cadenas superiores)
             "to": args["to"], 
             "digest": args["digest"], 
             "timestamp": time.time(),
@@ -249,6 +251,7 @@ class AccChainService(Resource):
         node_address = request.get_json()["node_address"]
         if node_address == None:  
             return "ERROR: Invalid data" , 400 
+        AccChainService.peers.append( request.host_url ) #Nos concatenamos a nosotros mismos 
         AccChainService.peers.append( node_address )
         return AccChainService.get_chain()
     
@@ -269,6 +272,7 @@ class AccChainService(Resource):
             AccChainService.create_chain_from_dump(chain_dump)
             #Nos añadimos a la chain
             for i in range( 0 , len( response.json()['peers'])):
+            
                 AccChainService.peers.append(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
             return "Registration successful", 200
         else:
@@ -316,9 +320,35 @@ class AccChainService(Resource):
     @app.route('/validators' ,methods=['GET'])
     def get_validators( ): 
         return {"validators": AccChainService.acc_chain.validators.rest_addresses}
+
+    #Function thath creates some wallet with balance in acc 
+    @app.route('/ico' ,methods=['POST'])
+    def ico( ): 
+        if len( AccChainService.acc_chain.chain ) != 1:
+            return "ERROR: Chain already initialized", 400
+        if len(AccChainService.acc_chain.unconfirmed_transactions) != 1: 
+            return  "ERROR: Chain already initialized", 400
+        args =  parser.parse_args()
+        
+        #Lo que haremos será añadir una serie de transacciones al principio, añadiendo las wallets que queramos, y que van a recibir el stake suficiente para poder validar, serán nuestros nodos principales validadores
+        transaction = {"fee": 0 , "amount": 50,
+         "pk": AccChainService.wallet.public_key, "signature":"0" , "timestamp": 0 ,
+          "to": args["pk"] , "digest": 0 }
+        signature = base64.encodebytes( AccChainService.wallet.signTransaction( transaction ) ).decode("utf-8")
+        #codificamos la transaccion y la firma
+        res = base64.encodebytes( bytes( json.dumps( str( transaction))  , "utf-8" ) ).decode("utf-8")
+        compression = gzip.compress( bytes ( json.dumps( res) , "utf-8" )  )
+        headers = {'Content-Type': "application/json"}
+        AccChainService.set_new_validator( ) #Seteamos nuevamente el validador con el que hemos firmado la transaccion para conseguir persistir las 100 coins
+        return {"Success": 201 , "Result":str(requests.post(request.host_url+ "/new_transaction",
+                    data=json.dumps({"transaction_b64":  base64.encodebytes( compression).decode("utf-8") , "signature": signature}),
+                    headers=headers).content) }
     
     @staticmethod
     def set_new_validator( ): 
+
+        AccChainService.acc_chain.accounts.addresses.append(AccChainService.wallet.public_key)
+        AccChainService.acc_chain.accounts.balance[AccChainService.wallet.public_key] = 1000000 
         AccChainService.acc_chain.validators.validators.append(AccChainService.wallet.public_key)
         AccChainService.acc_chain.validators.balance[AccChainService.wallet.public_key] = 100
         AccChainService.acc_chain.validators.datasets[AccChainService.wallet.public_key] = []
@@ -378,7 +408,8 @@ class AccChainService(Resource):
             AccChainService.set_new_validator() #Seteamos nuevamente nuestra wallet como validadora
             return True
         return False
-    
+        
+
     def announce_new_block( block ): 
         for peer in AccChainService.peers:
             url = "{}/add_block".format(peer)
@@ -387,11 +418,13 @@ class AccChainService(Resource):
                         data=json.dumps(block.to_string(), sort_keys=True),
                         headers=headers)
 
-    def launchme( self , host , port): 
+    def launchme( self , host , port ): 
         #api.add_resource(AccChainService , '/UserChain')
         AccChainService.wallet_setup( )
         AccChainService.acc_chain.create_genesis_block(AccChainService.wallet) #Le pasamos la wallet para firmar el bloque
         app.run( host= host , port=port, debug =False )
+       
+
 
 
 

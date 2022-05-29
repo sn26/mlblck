@@ -45,7 +45,8 @@ class AccManagerChain:
     
     #Verificamos que la firma del usuario correcto
     def check_new_transaction(self, transaction ): 
-        return Common.check_new_transaction( ["fee", "transaction", "amount", "pk", "signature", "timestamp", "to", "digest"], transaction )
+        
+        return Common.check_new_transaction( ["fee", "dataset", "validator_endpoint_address", "transaction", "amount", "pk", "signature", "timestamp", "to", "digest"], transaction )
 
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
     def add_new_transaction(self, transaction):  
@@ -54,21 +55,25 @@ class AccManagerChain:
     
     #Cuando añadimos un bloque a nuestra chain, tendremos que actualizadar los nodos validadores y las cuentas de cada uno de nuestros nodos
     def execute_block( self): 
+        print("ESTAMOS PASANDO A EJECUTAR EL BLOQUE" )
         for itransact in  self.last_block.neural_data_transaction: 
-            
-            if itransact["transaction"] == "new_validator":
+            print("ESTAMOS ENTRANDO A EJECUTAR EL BLOQUE")
+            print( itransact["transaction"])
+            print(TransactionTypes.VALIDATOR)
+            if itransact["transaction"] == TransactionTypes.VALIDATOR:
+                print("HEMOS ENTRANDO A AÑADIR UN VALIDADOR")
                 self.accounts.add_address(itransact["pk"])
                 self.validators.update(itransact)
-            elif itransact["transaction"] == "addStake": 
+            elif itransact["transaction"] == TransactionTypes.ADDSTAKE: 
                 self.accounts.add_address(itransact["pk"])
                 self.validators.addStake( itransact["pk"], 
                 itransact["amount"] )
 
-            elif itransact["transaction" ] == "addValDataStake": 
+            elif itransact["transaction" ] == TransactionTypes.ADDVALDATASTAKE: 
                 self.validators.addValidationData( itransact["pk"], itransact["dataset"])
-            elif itransact["transaction"] == "addAddress": 
+            elif itransact["transaction"] == TransactionTypes.ADDADDRESS: 
                 self.accounts.add_address(itransact["pk"]) #Añadimos una nuevacuenta con balance 0
-            elif itransact["transaction"] == "transaction": 
+            elif itransact["transaction"] == TransactionTypes.ADDTRANSACTION: 
                 self.accounts.transfer(itransact["pk"], itransact["to"], itransact["amount"])
         return
 
@@ -175,6 +180,7 @@ class AccManagerChain:
             print( block.to_string( ))
             self.chain.append(block)
             #Una vez hemos añadido el bloque, pasamos a ejecutarlo
+
             self.execute_block( )
             self.unconfirmed_transactions.clear() #Limpiamos las transacciones 
             return True

@@ -15,13 +15,22 @@ class MiningFeature:
 
 
     def update( self ,transaction  ): 
-        if ( transaction["amount"] == 1 and transaction["to"] == "0"  and transaction["validator_endpoint_address"] != None and trasaction.transaction["dataset"] != None): 
+        print("Entramos a actualizar el validador")
+        print("VALIDACION")
+        if ( transaction["amount"] >= 1 and transaction["to"] == "0"  and transaction["validator_endpoint_address"] != None and transaction["dataset"] != None): 
             if transaction["pk"] not in self.accounts.addresses: 
                 print("ERROR: THERE IS NOT AN ACCOUNT WITH THE GIVEN PK ")
                 return False 
+            if self.accounts.balance[transaction["pk"]] < transaction["amount"]:
+                print("ESTAMOS ENTRANDO EN EL BALANCE Y HEMOS DADO FALSE!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print(self.accounts.balance[transaction["pk"]])
+                print(transaction["amount"])
+                return False
+            print("LA VALIDACION HA SIDO CORRECTAAAAAAAAAAAAAAAAAAAAAAA")
             self.validators.append( transaction["pk"])
             self.rest_address[transaction["pk"]] = transaction["validator_endpoint_address"]
             self.datasets[transaction["pk"]] = transaction["output"]["dataset"] #Añadimos el dataset del validador 
+            self.accounts.addresses.balance[transaction["pk"]] = self.accounts.addresses.balance[transaction["pk"]] - transaction["amount"] #Retiramos de lo que tenemos en accounts
             return True
         return False
 
@@ -78,6 +87,8 @@ class MiningFeature:
         val = self.getMax()
         return self.balance[val]*0.4 + len(self.datasets[val])*0.6
 
+    '''
     def update(self, transaction): 
-        self.addStake(transaction["pk"] , transaction.output.amount )
+        self.addStake(transaction["pk"] , transaction["amount"] )
         return 
+    '''
