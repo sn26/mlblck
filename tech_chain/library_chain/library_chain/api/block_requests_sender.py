@@ -1,12 +1,14 @@
 from requests import get
-
+import json
 
 class BlockRequestsSender: 
     
+    chain = None 
+
     #Function that sends a requests to one server in a block
     @staticmethod
     def get_weights(block_rest,  hash ): 
-        return str( get( block_rest, params={'hash': hash }).json()['weights'])
+        return str( get( block_rest, params={'hash': hash }).json()['model_weights'])
     
     #Function that sends a requests to one server in a block
     @staticmethod
@@ -20,12 +22,11 @@ class BlockRequestsSender:
 
     @staticmethod
     def get_dataset(rest ): 
-        return str(get(rest).json()['dataset'])
+        return get(rest).json()['dataset']
 
     #Funcion para sacar los validadores de un nodo al que estamos conectados 
     @staticmethod 
     def get_validators(  rest): 
-        
         return get( rest + "/validators"  ).json( ) ['validators'] 
     
     #Verificamos el resultado

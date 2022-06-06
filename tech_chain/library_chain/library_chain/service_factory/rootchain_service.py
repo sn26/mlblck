@@ -4,6 +4,7 @@ from library_chain.chain_factory import ChainFactory
 from library_chain.wallets import Wallet
 import time 
 import requests
+from library_chain.service_factory import ServiceTools
 from library_chain.transactions import TransactionTypes
 import os
 import json
@@ -13,162 +14,184 @@ app = Flask(__name__)
 api = Api(app)
 parser = reqparse.RequestParser()
 #PK -> CLAVE PUBLICA DEL AUTHOR DE UNA TRANSACCION 
-parser.add_argument('hash', 'rest' , 'pk' )
-root_chain = ChainFactory.create_chain(1)
-wallet = Wallet("ADM00")
-root_chain.create_genesis_block(wallet)
-peers = set() #Address to other participating on the network
-
+parser = reqparse.RequestParser()
+parser.add_argument('transaction_b64')
+parser.add_argument('model_arch')
+parser.add_argument('model_weights')
+parser.add_argument('signature')
+parser.add_argument('block_hash')
+parser.add_argument('node_address') #Lo utilizaremos como param para aña
   
 class  RootChainService(): 
-    '''
-    def __init__(self ) :
-        print("PASAMOS")
-        self.model = ModelTrained() 
-        self.srvCnn = ServerCnn(ModelWeights.weights, self.model  )
-        print("PASAMOS")
-        return
-    ''' 
+    
+    root_chain = ChainFactory.create_chain(1)
+    peers = []
+    
     #Añadimos una nueva transaccion (Lo tendremos que añadir a la nueva pool)
-    @app.route('/new_transaction', methods=['POST'])
-    def add_transaction( self ): 
-        args = parser.parse_args()
-        for field in ["model_arch", "weights", "pk", "signature"]: 
+    @app.route('/new_model', methods=['POST'])
+    def add_transaction(  ): 
+        args = parser.parse_args( )
+        if args["model_weights"] == None or args["model_arch"] == None: 
+            return "Invalid Transaction data", 404 
+        model_weights = args["model_weights"]
+        model_arch = args["model_arch"]
+        signature = ServiceTools.decode_signature( args["signature"])
+        args = ServiceTools.decode_transaction( args["transaction_b64"]) #Decodificamos la transaccion que nos viene en base 64 
+        args["signature"] = signature
+        #Una vez tenemos la transaccion, sacamos  la firma 
+        for field in ["pk", "model_arch", "model_weights", "signature", "digest"]: 
             if field not in args: 
-                return "Invalid Transaction data", 404
-        args["timestamp"] = time.time()
-        root_chain.add_new_transaction( args)
-        return "Success", 201 
-
+                return "Invalid Transaction data", 404 
+        return {"Success":201 ,  "Result":  RootChainService.root_chain.add_new_transaction({
+            "pk": args["pk"], 
+            "model_arch": model_arch, 
+            "model_weights": model_weights, 
+            "signature": args["signature"],  
+            "digest": args["digest"], 
+            "timestamp": time.time()
+        })}
+        
     #Sacamos toda la info de los bloques de la cadena
     @app.route('/chain', methods=['GET'])
-    def get_chain(self): 
+    def get_chain(): 
         chain_data = []
-        for block in root_chain.chain:
-            chain_data.append(block.__dict__)
+        for block in RootChainService.root_chain.chain:
+            chain_data.append(block.to_string())
         return json.dumps({"length": len(chain_data),
                         "chain": chain_data,
-                        "peers": list(peers)})  
+                        "peers": RootChainService.peers})
     
 
     #Minado de las transacciones que no se hayan confirmado aún
     @app.route('/mine', methods=['GET'])
-    def mine(self):
-        if len( root_chain.transactionPool.transactions ) == 0: 
-            return "No transactions to mine"
-        result = root_chain.mine() 
+    def mine():
+        if len( RootChainService.root_chain.unconfirmed_transactions ) == 0: 
+            return {"Result": "No Transactions to mine."}
+        result = RootChainService.root_chain.mine() 
         if result == False: 
-            return "ERROR: Invalid transactions"
-        chain_length = len(root_chain.chain) 
-        self.consensus()
-        if chain_length == len(root_chain.chain):
+            RootChainService.root_chain.unconfirmed_transactions.clear() #Limpiamos el conjunto de transacciones con las que contaba la chain
+            return {"Result": "ERROR: Invalid transactions" }
+        chain_length = len(RootChainService.root_chain.chain) 
+        #return {"Result": "Evitamos el consenso"}
+        print(" Estamos entrando para realizar el consenso con todas las peers ")
+        if( RootChainService.consensus() == True):
+            #RootChainService.root_chain.unconfirmed_transactions.clear() #Limpiamos las transacciones una vez hemos minado el bloque
+            return {"Result": "Consesus from another node. No block mined but chain changed", "Chain": RootChainService.get_chain() } 
+        if chain_length == len(RootChainService.root_chain.chain):
             # announce the recently mined block to the network
-            self.announce_new_block(root_chain.last_block)
-        return "Block #{} is mined.".format(root_chain.last_block.index)
+            RootChainService.announce_new_block(RootChainService.root_chain.last_block)
+        RootChainService.root_chain.unconfirmed_transactions.clear() #Limpiamos las transacciones una vez hemos minado el bloque
+        return {"Result": "Block #{} is mined.".format(RootChainService.root_chain.last_block.index) }
 
     #Endpoint to add peers
     @app.route('/register_node', methods=['POST']) 
-    def register_peer(self ):
+    def register_peer():
         node_address = request.get_json()["node_address"]
-        if not node_address: 
-            return "ERROR: Invalid data" 
-        peers.add( node_address )
-        return self.get_chain()
+        if node_address == None:  
+            return "ERROR: Invalid data" , 400 
+        RootChainService.peers.append( request.host_url ) #Nos concatenamos a nosotros mismos 
+        RootChainService.peers.append( node_address )
+        return RootChainService.get_chain()
     
     @app.route('/register_with' , methods= ['POST'])
-    def register_with_existing_node(self ): 
+    def register_with_existing_node(): 
         node_address = request.get_json()["node_address"]
-        if not node_address:
-            return "Invalid data", 400
+        if node_address == None:
+            return "Error: Invalid data", 400
         data = {"node_address": request.host_url}
         headers = {'Content-Type': "application/json"}
         # Make a request to register with remote node and obtain information
         response = requests.post(node_address + "/register_node",
                                 data=json.dumps(data), headers=headers)
         if response.status_code == 200:
-            global root_chain
-            global peers
             # update chain and the peers
             chain_dump = response.json()['chain']
-            root_chain = create_chain_from_dump(chain_dump)
-            peers.update(response.json()['peers'])
+            #Le pasamos la wallet que ya teníamos creada para conseguir persistirla
+            RootChainService.root_chain = RootChainService.create_chain_from_dump(chain_dump )
+            #Nos añadimos a la chain
+            for i in range( 0 , len( response.json()['peers'])):
+                RootChainService.peers.append(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
             return "Registration successful", 200
         else:
             # if something goes wrong, pass it on to the API response
             return response.content, response.status_code
-    
+
+
     #Endpoint to get a block by hash
     @app.route("/get_block", methods=["GET"])
-    def get_block(self): 
-        tx_data = request.get_json()
-        return self.root_chain.get_block_by_hash(tx_data.get("hash")) 
+    def get_block(): 
+        args = parser.parse_args( )
+        return self.root_chain.get_block_by_hash(args["block_hash"]) 
 
 
     @app.route('/add_block', methods=["POST"])
     def verify_and_add_block(): 
         block_data = request.get_json()
-        block = Block(block_data["index"],
-                    block_data["transactions"],
-                    block_data["timestamp"],
-                    block_data["previous_hash"],
-                    block_data["nonce"],
-                    block_data["pk"])
-        if ( root_chain.add_block(block ) == False): 
+        block = BlockSerializer.serialize( block_data)
+        if ( RootChainService.root_chain.add_block(block ) == False): 
             return "The block was discarded by the node", 400
         return "Block added to the chain", 201
+    
 
     @app.route('/pending_transactions', methods=["GET"])
     def get_pending_transactions(): 
-        return json.dumps(root_chain.transactionPool.transactions)
+        res = []
+        for transaction in RootChainService.root_chain.unconfirmed_transactions : 
+            res.append( HashManager.delete_unnecesary_params_from_transaction( transaction ))
+        return {"Success":201, "Result": res }
         
         
     def create_chain_from_dump(self , chain_dump): 
-        generated_chain = ChainFactory.create_chain(1)
-        #Cargamos el dataset y el que se encargará de preprocesar los datos en la chain
-        generated_chain.dataset = DataLoader.load_dataset()
-        generated_chain.preprocessor = Preprocessor()
-        generated_chain.create_genesis_block()
-        for idx, block_data in enumerate(chain_dump):
-            if idx == 0:
-                continue  # skip genesis block
-            block = Block(block_data["index"],
-                        block_data["transactions"],
-                        block_data["timestamp"],
-                        block_data["previous_hash"],
-                        block_data["nonce"])
-           
-            added = generated_blockchain.add_block(block)
-            if not added:
-                raise Exception("ERROR: Chain Security Fail")
-        return generated_blockchain    
+        RootChainService.root_chain = ChainSerializer.serialize_root_chain( chain_dump) #Serializamos la chain de los usuarios, para que coincida con lo que tenemos interno
+        return RootChainService.root_chain
 
     
-    def consensus(self ): 
-        global root_chain
+  #FUNCIONANDO CUANDO NO HAY PEERS (AHORA, AÑADIREMOS UNA PEER SIN DATOS Y OTRA CON UN NUM MAYOR DE TRANSACCIONES A LAS NUESTRAS)
+    def consensus( ): 
         longest_chain = None 
-        current_len = len(root_chain.chain)
-        for node in peers:
+        current_len = len(RootChainService.root_chain.chain)
+        for node in RootChainService.peers:
+            print("Nuestros nodos son ")
+            print( node)
             response = requests.get('{}/chain'.format(node))
             length = response.json()['length']
             chain = response.json()['chain']
-            if length > current_len and root_chain.check_chain_validity(chain):
+            if length > current_len and RootChainService.root_chain.check_chain_validity(chain) == True:
                 current_len = length
                 longest_chain = chain
-
+        print(" HEMOS SACADO EL CONSENSO")
         if longest_chain != None:
-            root_chain = longest_chain
+            print("ESTAMOS CAMBIANDO NUESTRA CHAIN!!!!!!!!!!!!!!!")
+            #RootChainService.root_chain.wallet_setup( )
+            #RootChainService.set_new_validator() #Seteamos nuevamente nuestra wallet como validadora
+            RootChainService.root_chain = ChainSerializer.serialize_root_chain( longest_chain ) #Serializamos la chain de los usuarios, para que coincida con lo que tenemos interno
             return True
-
         return False
-    
-    def announce_new_block(self , block ): 
-        for peer in peers:
-            url = "{}add_block".format(peer)
+        
+
+    def announce_new_block( block ): 
+        for peer in RootChainService.peers:
+            url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,
-                        data=json.dumps(block.__dict__, sort_keys=True),
+                        data=json.dumps(block.to_string(), sort_keys=True),
                         headers=headers)
 
+    def launchme( self , host , port ): 
+        #api.add_resource(RootChainService , '/UserChain')
+        #RootChainService.root_chain.wallet_setup( )
+        RootChainService.root_chain.create_genesis_block() #Le pasamos la wallet para firmar el bloque
+        app.run( host= host , port=port, debug =False )
+       
+
+
+
+
+
+
+if __name__ == "__main__":
+    
+    print("ESTAMOS LANZANDO EL MAIN")    
 
 
 

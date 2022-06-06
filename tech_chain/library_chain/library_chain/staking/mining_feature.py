@@ -12,7 +12,18 @@ class MiningFeature:
         self.datasets = {}
         self.rest_addresses = {}
         return
-
+    
+    def get_len_from_dataset(self, dataset): 
+        if type(dataset ) == list: #Comprobamos si no lo tenemos inicializado con un dataset
+            print("HEMOS ENTRADO PORQUE NUESTRO TIPO ES UNA LISTA")
+            return len(dataset)
+        print("NO HEMOS ENTRADO ")
+        print("EL TIPO ES ")
+        print(type(dataset))
+        data_len = 0 
+        for key in dataset.keys():
+            data_len = data_len + len( dataset[key]) 
+        return data_len
 
     def update( self ,transaction  ): 
         print("Entramos a actualizar el validador")
@@ -28,9 +39,10 @@ class MiningFeature:
                 return False
             print("LA VALIDACION HA SIDO CORRECTAAAAAAAAAAAAAAAAAAAAAAA")
             self.validators.append( transaction["pk"])
-            self.rest_address[transaction["pk"]] = transaction["validator_endpoint_address"]
-            self.datasets[transaction["pk"]] = transaction["output"]["dataset"] #Añadimos el dataset del validador 
-            self.accounts.addresses.balance[transaction["pk"]] = self.accounts.addresses.balance[transaction["pk"]] - transaction["amount"] #Retiramos de lo que tenemos en accounts
+            self.rest_addresses[transaction["pk"]] = transaction["validator_endpoint_address"]
+            self.datasets[transaction["pk"]] = transaction["dataset"] #Añadimos el dataset del validador 
+            self.balance[transaction["pk"]] =  transaction["amount"] #Añadimos el balance
+            self.accounts.balance[transaction["pk"]] = self.accounts.balance[transaction["pk"]] - transaction["amount"] #Retiramos de lo que tenemos en accounts
             return True
         return False
 
@@ -45,8 +57,11 @@ class MiningFeature:
     def initialize(self, address):
         if self.check_validators_addr( address )== False: 
             return
-        if (self.balance[address] == None):
+        if ( address not in self.balance.keys()):
             self.balance[address] = 0
+            self.datasets[address] = []
+            self.validators.append(address)
+            self.rest_addresses[address] = self.rest_addresses[self.rest_addresses.keys()[0]]
             #self.validators.append( address)
         return
 
@@ -58,10 +73,20 @@ class MiningFeature:
         return 
     
     def addValidationData(self , from_tr ,datasets): 
-        if self.check_validators_addr(address) == False: 
+        if self.check_validators_addr(from_tr) == False: 
+            print("ERROR: THERE IS NOT A USER TO ADD VAL DATA")
             return 
         self.initialize(from_tr )
-        self.datasets[from_tr] = self.datasets[from_tr] + datasets
+        if len(self.datasets[from_tr ]) == 0: 
+            self.datasets[from_tr] = datasets
+            return
+        else: 
+            try:
+                for key in self.datasets[from_tr].keys( ):
+                    self.datasets[from_tr][key].extend( datasets[key])
+            except Exception as e: 
+                print("ERROR: Keys dont' match!")
+                return
         return 
   
     def getStake(self, address):
@@ -75,12 +100,13 @@ class MiningFeature:
         leader = None
         try: 
             for i in range( 0 , len(self.validators )): 
-                if (self.balance[self.validators[i]]*0.4 + len(self.datasets[self.validators[i]])*0.6> balanceplusdata):
+                if (int(self.balance[self.validators[i]])*0.4 +  int(self.get_len_from_dataset(self.datasets[self.validators[i]]))*0.6> balanceplusdata):
                     leader = self.validators[i]                
-                    balance= self.balance[self.validators[i]]*0.4 + len(self.datasets[self.validators[i]])*0.6
+                    balance= int(self.balance[self.validators[i]])*0.4 + len(self.datasets[self.validators[i]])*0.6
             #Returns the leader which is going to be used for validate 
             return leader
         except Exception as e: 
+            print("HEMOS LANZADO UNA EXCEPCION AL SACAR EL LEADER")
             return None
 
     def getNonce(self ): 

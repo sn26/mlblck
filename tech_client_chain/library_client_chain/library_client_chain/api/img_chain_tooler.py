@@ -5,7 +5,7 @@ import base64
 import numpy as np 
 from numpy import asarray
 
-class ImgTooler: 
+class ImgChainTooler: 
 
     img_rows = 32 
     img_cols = 32 
@@ -47,9 +47,11 @@ class ImgTooler:
         cad_def = cad
         while len(cad_def) < 3072:
             cad_def = cad_def + cad
-        img = Image.frombytes("RGB", (ImgTooler.img_rows,ImgTooler.img_cols), cad_def)
-        img = img.resize((ImgTooler.img_rows, ImgTooler.img_cols)) #Resizing the image
-        return img  #Devolvemos la imagen que compondra nuestro dataset
+        '''
+        img = Image.frombytes("RGB", (ImgChainTooler.img_rows,ImgChainTooler.img_cols), cad_def)
+        img = img.resize((ImgChainTooler.img_rows, ImgChainTooler.img_cols)) #Resizing the image
+        '''
+        return cad_def #Devolvemos el base64 que luego en la chain contaremos con la funcion preprocessor para transformarlo a imagen
         '''
         #print(img.size)
         try:

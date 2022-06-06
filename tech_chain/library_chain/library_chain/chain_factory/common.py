@@ -13,7 +13,13 @@ class Common:
     #Tambien se comprobará la firma de la transaccion
     @staticmethod
     def check_new_transaction( keys, transaction ): 
+        print("La transaccion que estamos sacando es")
+        print(transaction)
+        print("LAS CLAVES QUE TENEMOS SON")
+        print(keys)
+        
         for key in transaction.keys(): 
+            print(key)
             if key not in keys: 
                 print( "ERROR 400: Not Valid Keys ") 
                 print(keys) 
@@ -43,10 +49,6 @@ class Common:
                 chain.unconfirmed_transactions.append(transaction)
                 return True 
         return False
-
-    @staticmethod
-    def get_dataset( chain ): 
-        return BlockRequestsSender.get_dataset(chain.user_chain + '/dataset')
 
     @staticmethod 
     def get_response_from_last_block( chain , X): 

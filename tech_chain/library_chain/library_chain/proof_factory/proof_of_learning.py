@@ -1,3 +1,7 @@
+import collections
+from sklearn import metrics
+import keras
+import numpy
 
 class ProofOfLearning: 
 
@@ -13,10 +17,15 @@ class ProofOfLearning:
 
     #Function to get the nonce of a block
     def nonce(self, block, dataset): 
-        return self.precission_acc(model.predict(dataset["x_test"]), dataset["y_test"])
+        return self.precission_acc(block.model.predict(dataset["x_test"]), dataset["y_test"])
 
     #Function to get the precission rate of a model trained
     def precission_acc(self, y_pred , y_test):
+        y_pred = keras.utils.to_categorical(y_pred, 4)
+        y_test = keras.utils.to_categorical(y_test, 4)
+        print("EL PRED INICIAL ES ")
+        print(y_pred)
+        '''
         prec_hang= 0.00
         ape_media_hang = 0.00
         for i in range(len(y_pred)):
@@ -35,5 +44,10 @@ class ProofOfLearning:
         prec_hang = prec_hang / len(y_pred)
         ape_media_hang = ape_media_hang /  len(y_pred)
         print("PACC_5 MEDIA HANG : " , ape_media_hang)
-        return prec_hang
+        ''' 
+        print(numpy.argmax(y_test, axis=1))
+        print(numpy.argmax(numpy.argmax(y_pred, axis=1), axis=1))
+        return metrics.accuracy_score(numpy.argmax(y_test, axis=1) ,numpy.argmax(numpy.argmax(y_pred, axis=1), axis=1))
+        
+        
 

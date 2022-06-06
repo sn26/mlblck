@@ -8,33 +8,63 @@ from library_chain.chain_factory import Common
 from library_chain.models import Block, HashManager, BlockSerializer
 from library_chain.api import BlockRequestsSender
 from library_chain.proof_factory import ProofFactory
-
+from library_chain.wallets import Wallet
+import json
+import os
 
 #Chain that contains user general accounts
 class AccManagerChain: 
-
+    
     identifier = 2 
-    user_chain = None #Nodo al que nos conectaremos para sacar los datos mediante request, en realidad para esta chain no sería necesario
     def __init__(self): 
         self.chain = []
         self.unconfirmed_transactions = []
-        
+        #Aqui establecemos solamente la public key del admin dentro de nuestras Accounts
         self.accounts = Accounts()
         self.validators = MiningFeature( self.accounts)
-        #self.user_chain = None #Solo tenemos que irnos a un nodo, y sacar de alli el leader
+        self.admin_setup()
+        BlockRequestsSender.chain = self 
+        return 
+
+    def admin_setup(self ):
+        f = open(os.path.abspath("adm_wallet.json"))
+        adm = json.load(f)
+        self.accounts.addresses.append( adm["public_key"] )
+        self.validators.balance[adm["public_key"]] = 0
+        self.validators.datasets[adm["public_key"]] = []
+        self.accounts.balance[adm["public_key"]] = 1000000 
+        self.validators.validators.append(adm["public_key"])
+        self.validators.rest_addresses[adm["public_key"]] =  "http://127.0.0.1:12345"
+        return
+    
+    def set_chain_wallet( self, file_path ): #Aunque otro nodo establezca su wallet aqui como adm, esta será rechazada en el consenso por el resto de nodos
+        #Serializamos la clave publica y la privada, respecto a las que tenemos nosotros dentro de nuestra chain
+        # Opening JSON file
+        f = open(file_path) #En el resto de los nodos, no pasaremos ni la private key ni la password
+        # returns JSON object as 
+        # a dictionary
+        adm = json.load(f)
+        self.wallet = Wallet("00000000") #Nos da igual el secret que pongamos porque se lo vamos a cambiar con el file
+        self.wallet.private_key_obj = self.wallet.serialize_private_key_from_hex(adm["private_key"], adm["password"])
+        self.wallet.public_key_obj = self.wallet.serialize_public_key_from_hex( adm["public_key"])
+        self.wallet.private_key, self.wallet.public_key = self.wallet.get_hex_pair(self.wallet.private_key_obj  , self.wallet.public_key_obj, adm["password"])
         return 
     
+
     @property 
     def last_block(self ): 
         return self.chain[-1]
 
-    @property 
+    @property
     def user_chain( self ): 
-        return AccManagerChain.user_chain
+        #Sacamos el rest del leader
+        return self.validators.rest_addresses[self.get_leader()] 
 
+    '''    
     def set_user_chain( self, user_chain): 
         AccManagerChain.user_chain = user_chain #Nuestro apoyo al nodo (En realidad no hace falta para esta cad de bloques)
-    
+    ''' 
+
     #Function to get the leader validator
     def get_leader(self ):
         return self.validators.getMax() #Returns the leader address 
@@ -45,7 +75,6 @@ class AccManagerChain:
     
     #Verificamos que la firma del usuario correcto
     def check_new_transaction(self, transaction ): 
-        
         return Common.check_new_transaction( ["fee", "dataset", "validator_endpoint_address", "transaction", "amount", "pk", "signature", "timestamp", "to", "digest"], transaction )
 
     #Si el check ha sido correcto, añadiremos la transaccion al conjunto de transacciones que aun no se han realizado
@@ -55,20 +84,14 @@ class AccManagerChain:
     
     #Cuando añadimos un bloque a nuestra chain, tendremos que actualizadar los nodos validadores y las cuentas de cada uno de nuestros nodos
     def execute_block( self): 
-        print("ESTAMOS PASANDO A EJECUTAR EL BLOQUE" )
         for itransact in  self.last_block.neural_data_transaction: 
-            print("ESTAMOS ENTRANDO A EJECUTAR EL BLOQUE")
-            print( itransact["transaction"])
-            print(TransactionTypes.VALIDATOR)
             if itransact["transaction"] == TransactionTypes.VALIDATOR:
-                print("HEMOS ENTRANDO A AÑADIR UN VALIDADOR")
                 self.accounts.add_address(itransact["pk"])
                 self.validators.update(itransact)
             elif itransact["transaction"] == TransactionTypes.ADDSTAKE: 
                 self.accounts.add_address(itransact["pk"])
                 self.validators.addStake( itransact["pk"], 
                 itransact["amount"] )
-
             elif itransact["transaction" ] == TransactionTypes.ADDVALDATASTAKE: 
                 self.validators.addValidationData( itransact["pk"], itransact["dataset"])
             elif itransact["transaction"] == TransactionTypes.ADDADDRESS: 
@@ -88,8 +111,13 @@ class AccManagerChain:
     #Funcion mediante la cual verificamos una transacción (Verificamos que sea correcta la firma de la transaccion, a lo mejor lo deberiamos de cambiar a transacciones)
     @classmethod 
     def verify_transaction(cls , transaction):
-        
-        return Common.verify_signature(AccManagerChain.user_chain, transaction["signature"], Common.get_hash_from_transaction( transaction) , transaction["pk"]) 
+        print("ESTAMOS ENTRANDO A VERIFICAR LA TRANSACCION")
+        print("TRANSACCION")
+        print("ESTE ES EL HASH")
+        print( Common.get_hash_from_transaction( transaction)) 
+        print("LA TRANSACCION QUE TENEMOS DE ENTRADA ES ")
+        print(transaction)
+        return Common.verify_signature(BlockRequestsSender.chain.user_chain, transaction["signature"], Common.get_hash_from_transaction( transaction) , transaction["pk"]) 
 
     @classmethod
     #Funcion mediante la cual validamos las transacciones de nuestro bloque
@@ -101,8 +129,7 @@ class AccManagerChain:
 
     #Comprobamos que el que firmó el bloque se encuentre entre nuestros validadores
     def get_leader_by_block(self, block): 
-
-        validators = BlockRequestsSender.get_validators( AccManagerChain.user_chain ) #Sacamos los usuarios validadores desde nuestra chain
+        validators = BlockRequestsSender.get_validators( BlockRequestsSender.chain.user_chain ) #Sacamos los usuarios validadores desde nuestra chain
         #No podemos sacarlo de nuestros parametros, por lo que tendremos que enviar una req para recogerlos
         for key in validators.keys(): 
             if block.validator == key:
@@ -118,7 +145,7 @@ class AccManagerChain:
     #Comprobamos la firma del bloque 
     def verify_sign_block(self, block , leader):
         #Miramos que la firma del bloque coincida con la firma del leader 
-        return Common.verify_signature(AccManagerChain.user_chain,  block.signature, block.get_hash() , leader ) 
+        return Common.verify_signature(BlockRequestsSender.chain.user_chain,  block.signature, block.get_hash() , leader ) 
 
     @classmethod
     def is_valid_proof(cls, block, block_hash, last_block): 
@@ -153,16 +180,11 @@ class AccManagerChain:
         previous_hash ="0"
         last_block = None 
         for block in chain: 
-            print("El bloque que estamos probando es ")
             block = BlockSerializer.serialize(block) #Serializamos el bloque para poder utilizarlo como obj
-            print(block.to_string())
             block_hash = block.hash
             delattr(block, "hash")
-            print("El bloque hash es ")
-            print(block_hash)
             #En el valid proof estamos comprobando el bloque, con el bloque anterior al bloque comprobado, pero de la misma chain
             if not cls.is_valid_proof( block , block_hash , last_block ):
-                print("EL PROOF HA DADO NEGATIVO")
                 return False 
             last_block= block
         return True
@@ -170,13 +192,14 @@ class AccManagerChain:
     def add_block(self, block): 
         if self.chain[-1].hash != block.previous_hash:
             return False
-        result = self.proof( block)
-        if result == True: 
+        if self.proof( block) == True: 
             block.nonce = self.validators.getNonce() #En realidad este valor nos das un poco igual 
             
             block.model = None 
             block.hash = block.get_hash()
-            block.signature =  HashManager.encode_signature( BlockRequestsSender.sign_leader( AccManagerChain.user_chain  + "/sign", block.get_hash( )) )
+            print("LA USER CHAIN ES CON LA QUE VAMOS A INTENTAR FIRMAR ES ")
+            print(BlockRequestsSender.chain.user_chain)
+            block.signature =  HashManager.encode_signature( BlockRequestsSender.sign_leader( BlockRequestsSender.chain.user_chain  + "/sign", block.get_hash( )) )
             print( block.to_string( ))
             self.chain.append(block)
             #Una vez hemos añadido el bloque, pasamos a ejecutarlo
@@ -185,7 +208,6 @@ class AccManagerChain:
             self.unconfirmed_transactions.clear() #Limpiamos las transacciones 
             return True
         return False 
-
 
     #Sacamos los bloques
     #Añadir un bloque desde los nodos

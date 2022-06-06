@@ -8,20 +8,23 @@ from library_chain.models import HashManager
 class Wallet: 
 
     def __init__(self , secret  ):
-        secret = bytes(secret, 'utf-8') #Transformamos a Bytes para poder hacer el par de las claves
+        self.secret = secret 
         self.balance =  0
         self.dataset_mem = None
-        self.private_key_obj, self.public_key_obj = self.gen_key_pair(secret)
-        self.private_key, self.public_key = self.private_key_obj.private_bytes(
+        self.private_key_obj, self.public_key_obj = self.gen_key_pair()
+        self.private_key, self.public_key = self.get_hex_pair( self.private_key_obj, self.public_key_obj, secret)
+        return
+    
+    def get_hex_pair( self , private_key_obj, public_key_obj, secret):
+        return private_key_obj.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.BestAvailableEncryption(secret)
-        ).hex(), self.public_key_obj.public_bytes(
+            encryption_algorithm=serialization.BestAvailableEncryption(bytes(secret, 'utf-8'))
+        ).hex(), public_key_obj.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
          ).hex()
-        return
-    
+
     def get_dataset(self ): 
         return self.dataset_mem
     
@@ -29,11 +32,18 @@ class Wallet:
         self.dataset_mem = dataset
         return 
 
+    #Funcion que nos permite serializar la clave de entrada dado un conjunto hexadecimal
+    def serialize_private_key_from_hex(self, data, password ): 
+        return serialization.load_pem_private_key(bytes( bytearray.fromhex(data) ), bytes( password , "utf-8") ) #Devolvemos la clave serializada
+
+    def serialize_public_key_from_hex(self, data):
+        return serialization.load_pem_public_key(bytes(bytearray.fromhex(data)))
+
     #Getting the balance of a wallet
     def getBalance(chain):
         return chain.getBalance(self.public_key)
 
-    def gen_key_pair(self, secret ):
+    def gen_key_pair(self):
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048

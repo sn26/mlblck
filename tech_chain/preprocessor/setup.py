@@ -4,8 +4,8 @@ import os
 from setuptools import find_packages, setup
 
 # Package meta-data.
-NAME = "library-client-chain"
-DESCRIPTION = "Implements methods, services and clients to interact with the NSX."
+NAME = "preprocessor"
+DESCRIPTION = "Preprocessor function."
 AUTHOR = ""
 REQUIRES_PYTHON = ">=3.6.0"
 VERSION = "1.1.0"

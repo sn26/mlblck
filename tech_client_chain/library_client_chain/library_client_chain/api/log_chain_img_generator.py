@@ -1,9 +1,11 @@
 import os
 from glob import glob
 from PIL import Image
+from library_client_chain.api import ImgChainTooler
+import gzip
+import base64
 
-
-class LogImgGenerator: 
+class LogChainImgGenerator: 
 
     data_types = {
         "buffer_of": [], 
@@ -25,7 +27,7 @@ class LogImgGenerator:
             for subdirectory in subdirectories:
                 print(os.path.join(root, subdirectory))
             for file in files:
-                LogImgGenerator.read_one_file(os.path.join(root, file) )
+                LogChainImgGenerator.read_one_file(os.path.join(root, file) )
 
     #Funcion que nos permite sacar el tipo del fichero
     @staticmethod 
@@ -46,17 +48,17 @@ class LogImgGenerator:
     def read_one_file( file): 
         #print("Comenzamos")    
         # Abrimos el archivo para leer las líneas
-        fl =  LogImgGenerator.type_selection( file ) 
+        fl =  LogChainImgGenerator.type_selection( file ) 
         with open(file) as infile:
             print("Leyendo el fichero:\t" + file)
             contador = 0
             for linea in infile:
                 #Para cada línea creamos una imagen y la guardamos
                 #Recogemos todas las líneas y les asociamos un dato que será el que se usará para la validación [y]
-                LogImgGenerator.data_types[fl].append( ImgTooler.load_image_data( linea )) 
+                LogChainImgGenerator.data_types[fl].append(base64.encodebytes(gzip.compress(  ImgChainTooler.load_image_data( linea ) ) ).decode("utf-8")  )  
                 #print( "[" + linea + ",\n "+  sender.send( linea) + " ]") #ENVIAMOS LA IMAGEN AL SERVIDOR Y MOSTRAMOS EL RESULTADO POR PANTALLA
             infile.close()
-        return Log.LogImgGenerator.data_types #Devolvemos el diccionario con los datos    
+        return LogChainImgGenerator.data_types #Devolvemos el diccionario con los datos    
         
 
 
