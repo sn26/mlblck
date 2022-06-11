@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask_restful import reqparse, abort, Api, Resource
-from library_chain.chain_factory import ChainFactory
+from library_chain.chain_factory import ChainFactory, ChainSerializer
 from library_chain.wallets import Wallet
 import time 
 import requests
@@ -8,6 +8,11 @@ from library_chain.service_factory import ServiceTools
 from library_chain.transactions import TransactionTypes
 import os
 import json
+import base64
+import gzip
+from library_chain.models import BlockSerializer
+from library_chain.models import HashManager
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 app = Flask(__name__)
@@ -25,7 +30,7 @@ parser.add_argument('node_address') #Lo utilizaremos como param para aña
 class  RootChainService(): 
     
     root_chain = ChainFactory.create_chain(1)
-    peers = []
+    peers = set()
     
     #Añadimos una nueva transaccion (Lo tendremos que añadir a la nueva pool)
     @app.route('/new_model', methods=['POST'])
@@ -59,7 +64,7 @@ class  RootChainService():
             chain_data.append(block.to_string())
         return json.dumps({"length": len(chain_data),
                         "chain": chain_data,
-                        "peers": RootChainService.peers})
+                        "peers": list( RootChainService.peers) })
     
 
     #Minado de las transacciones que no se hayan confirmado aún
@@ -89,8 +94,10 @@ class  RootChainService():
         node_address = request.get_json()["node_address"]
         if node_address == None:  
             return "ERROR: Invalid data" , 400 
-        RootChainService.peers.append( request.host_url ) #Nos concatenamos a nosotros mismos 
-        RootChainService.peers.append( node_address )
+        RootChainService.peers.add( request.host_url ) #Nos concatenamos a nosotros mismos 
+        RootChainService.peers.add( node_address )
+        print("NUESTRO ROOT CHAIN TIENE ")
+        print(RootChainService.peers)
         return RootChainService.get_chain()
     
     @app.route('/register_with' , methods= ['POST'])
@@ -110,7 +117,7 @@ class  RootChainService():
             RootChainService.root_chain = RootChainService.create_chain_from_dump(chain_dump )
             #Nos añadimos a la chain
             for i in range( 0 , len( response.json()['peers'])):
-                RootChainService.peers.append(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
+                RootChainService.peers.add(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
             return "Registration successful", 200
         else:
             # if something goes wrong, pass it on to the API response
@@ -121,7 +128,7 @@ class  RootChainService():
     @app.route("/get_block", methods=["GET"])
     def get_block(): 
         args = parser.parse_args( )
-        return self.root_chain.get_block_by_hash(args["block_hash"]) 
+        return {"block": RootChainService.root_chain.get_block_by_hash(args["block_hash"]).to_string() }
 
 
     @app.route('/add_block', methods=["POST"])
@@ -141,7 +148,7 @@ class  RootChainService():
         return {"Success":201, "Result": res }
         
         
-    def create_chain_from_dump(self , chain_dump): 
+    def create_chain_from_dump(chain_dump): 
         RootChainService.root_chain = ChainSerializer.serialize_root_chain( chain_dump) #Serializamos la chain de los usuarios, para que coincida con lo que tenemos interno
         return RootChainService.root_chain
 
@@ -170,7 +177,7 @@ class  RootChainService():
         
 
     def announce_new_block( block ): 
-        for peer in RootChainService.peers:
+        for peer in list( RootChainService.peers):
             url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,
@@ -183,8 +190,6 @@ class  RootChainService():
         RootChainService.root_chain.create_genesis_block() #Le pasamos la wallet para firmar el bloque
         app.run( host= host , port=port, debug =False )
        
-
-
 
 
 

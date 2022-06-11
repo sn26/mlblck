@@ -16,7 +16,8 @@ ENTRY_POINTS = {
     "console_scripts": [
         "acc_admin_action_launcher = actions_chain.acc_admin_action_launcher:main", 
         "acc_node_action_launcher = actions_chain.acc_node_action_launcher:main", 
-        "root_node_action_launcher = actions_chain.root_node_action_launcher:main" 
+        "root_node_action_launcher = actions_chain.root_node_action_launcher:main", 
+        "main_node_action_launcher = actions_chain.main_node_action_launcher:main"
     ]
 }
 

@@ -3,7 +3,7 @@ from library_chain.proof_factory import ProofFactory
 from library_chain.api import BlockRequestsSender
 from library_chain.models import Block, HashManager 
 from library_chain.dataset import DatasetPreprocessor
-from library_chain.federated_learning import NeuralModelSerializer
+from library_chain.neural_model_serializer import NeuralModelSerializer
 
 
 #EN LOS NODOS HOJA, CADA BLOQUE LLEVA: TRANSACTION { PESOS  + MODEL_ARCH }

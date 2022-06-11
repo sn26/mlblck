@@ -39,7 +39,7 @@ class AccChainService(Resource):
 
     acc_chain = ChainFactory.create_chain(2)
    
-    peers = [] #Address to other participating on the network
+    peers = set() #Address to other participating on the network
    
     #Añadimos una nueva transaccion (Lo tendremos que añadir a la nueva pool)
     #Cuando añadimos una nueva transacción, nos referimos a las que son de transferencia de dinero
@@ -173,7 +173,7 @@ class AccChainService(Resource):
             chain_data.append(block.to_string())
         return json.dumps({"length": len(chain_data),
                         "chain": chain_data,
-                        "peers": AccChainService.peers})
+                        "peers": list( AccChainService.peers) })
     
     
     #Funcionan (Probado sólo cuando somos validadores)
@@ -254,8 +254,8 @@ class AccChainService(Resource):
         node_address = request.get_json()["node_address"]
         if node_address == None:  
             return "ERROR: Invalid data" , 400 
-        AccChainService.peers.append( request.host_url ) #Nos concatenamos a nosotros mismos 
-        AccChainService.peers.append( node_address )
+        AccChainService.peers.add( request.host_url ) #Nos concatenamos a nosotros mismos 
+        AccChainService.peers.add( node_address )
         return AccChainService.get_chain()
     
     #Funcionando
@@ -276,7 +276,7 @@ class AccChainService(Resource):
             AccChainService.acc_chain = AccChainService.create_chain_from_dump(chain_dump )
             #Nos añadimos a la chain
             for i in range( 0 , len( response.json()['peers'])):
-                AccChainService.peers.append(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
+                AccChainService.peers.add(response.json()['peers'][i]) #Concatenamos las peers en nuestra lista
             return "Registration successful", 200
         else:
             # if something goes wrong, pass it on to the API response
@@ -402,7 +402,7 @@ class AccChainService(Resource):
         
 
     def announce_new_block( block ): 
-        for peer in AccChainService.peers:
+        for peer in list( AccChainService.peers):
             url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,

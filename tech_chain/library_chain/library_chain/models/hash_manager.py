@@ -107,5 +107,6 @@ class HashManager:
     @staticmethod
     #Function that calculate the hash from one transaction in a whole block
     def get_entire_block_hash( block ): 
-        data = list([block.timestamp, block.index, block.nonce, block.previous_hash, HashManager.gen_hash_tree(block.neural_data_transaction) , block.model])
+        
+        data = list([block.timestamp, block.index, block.nonce, block.previous_hash, HashManager.gen_hash_tree(block.neural_data_transaction) , block.model_to_string() ])
         return HashManager.get_hash(data)

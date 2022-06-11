@@ -1,3 +1,2 @@
-from .neural_model_serializer import NeuralModelSerializer
 from .federated_learning import FederatedLearning
 
