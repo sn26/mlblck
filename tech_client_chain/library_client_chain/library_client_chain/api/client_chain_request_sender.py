@@ -14,6 +14,20 @@ class ClientChainRequestSender():
     def get_host(self, host): 
         return self.host
     
+    
+    ############################################################
+    ############################################################
+    #CONJUNTO DE FUNCIONES QUE VAMOS A USAR PARA LA MAIN CHAIN
+    ############################################################
+    ############################################################
+
+    def send_main_model_transaction(self,  data ,list_node_hashes,  signature):
+        #Enviaremos los modelos por separado de la transaccion en b64
+        return requests.post( "http://" + self.host + "/new_federated_lerning_model" , data=  {
+            "transaction_b64": data , 
+            "rest_federated_blocks": list_node_hashes, 
+            "signature": signature
+        }).content  
 
     ############################################################
     ############################################################

@@ -40,6 +40,36 @@ class ClientServiceSender:
             json_data["shape n" + str(i)] =  base64.encodebytes(bytes( json.dumps( str( model_weights[i].shape))  , "utf-8" ) ).decode("utf-8")
             
         return json_data
+    
+    def get_parsed_rest_blocks(self, list_node_hashes): 
+        json_data= {}
+        for i in range(0 , len( list_node_hashes)): 
+            json_data["rest" + str(i)] =   base64.encodebytes( bytes( json.dumps( str( list_node_hashes[i]["rest"]))  , "utf-8" )).decode("utf-8")
+            json_data["hash" + str(i)] =  base64.encodebytes(bytes( json.dumps( str( list_node_hashes[i]["hash"]))  , "utf-8" ) ).decode("utf-8")
+        return json_data
+
+    
+    
+    ############################################################
+    ############################################################
+    #CONJUNTO DE FUNCIONES QUE VAMOS A USAR PARA LA MAIN CHAIN
+    ############################################################
+    ############################################################
+
+    def send_main_federated_transaction( self, list_node_hashes):
+        #Serializamos el modelo, para poder pasarlo a la chain de manera sencilla
+        print("EL NODO QUE ESTAMOS ENVIANDO ES ")
+        print(list_node_hashes)
+        parsed_nodes = self.generate_encoded_transaction_and_signature(  self.get_parsed_rest_blocks(list_node_hashes) )[0]
+        transaction = {"rest_federated_blocks": parsed_nodes,
+            "pk": self.wallet.public_key, "signature":"0" , "timestamp": 0 ,
+            "digest": 0 }
+        print("LA TRANSACCION FINAL ES ")
+        print(transaction)
+        signature= self.generate_encoded_transaction_and_signature( transaction )[1]
+        transaction["rest_federated_blocks"] = []
+        res =  self.generate_encoded_transaction_and_signature( transaction )[0]
+        return self.clr_sender.send_main_model_transaction( res , parsed_nodes,  signature)
 
     ############################################################
     ############################################################
