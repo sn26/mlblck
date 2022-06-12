@@ -55,8 +55,8 @@ class AccChainService(Resource):
                 return "Invalid Transaction data", 404 
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
-            "fee": args["fee"], 
-            "amount": args["amount"], 
+            "fee": int( args["fee"]), 
+            "amount": int( args["amount"]), 
             "signature": args["signature"], 
             "to": args["to"], 
             "digest": args["digest"], 
@@ -77,8 +77,8 @@ class AccChainService(Resource):
                 return "Invalid Transaction data", 404 
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
-            "fee": args["fee"], 
-            "amount": args["amount"], 
+            "fee": int( args["fee"]) , 
+            "amount": int( args["amount"] ), 
             "dataset": args["dataset"], 
             "signature": args["signature"], 
             "to": args["to"], 
@@ -103,8 +103,8 @@ class AccChainService(Resource):
                 return "Invalid Transaction data", 404 
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
-            "fee": args["fee"], 
-            "amount": args["amount"], 
+            "fee": int( args["fee"] ), 
+            "amount": int( args["amount"] ), 
             "signature": args["signature"], 
             "to": args["to"], 
             "digest": args["digest"], 
@@ -131,8 +131,8 @@ class AccChainService(Resource):
         print(json.loads( dataset))
         return {"Success":201 ,  "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
-            "fee": args["fee"], 
-            "amount": args["amount"], 
+            "fee": int( args["fee"]), 
+            "amount": int( args["amount"] ), 
             "signature": args["signature"], 
             "dataset": json.loads( dataset ), #Es necesario incluir la data de la transaccion (Data que usaremos para validar en las cadenas superiores)
             "to": args["to"], 
@@ -155,8 +155,8 @@ class AccChainService(Resource):
                 return "Invalid Transaction data", 404 
         return { "Success":201, "Result":  AccChainService.acc_chain.add_new_transaction({
             "pk": args["pk"], 
-            "fee": args["fee"], 
-            "amount": args["amount"], 
+            "fee": int( args["fee"]), 
+            "amount":int( args["amount"]), 
             "signature": args["signature"], 
             "to": args["to"], 
             "digest": args["digest"], 
@@ -187,23 +187,30 @@ class AccChainService(Resource):
             return json.dumps( {
             "signature": "0"
         })
-        #Si nuestro nodo es el validador de entre todos los nodos
+        #Si nuestro n odo es el validador de entre todos los nodos
+       
         if AccChainService.acc_chain.get_leader( ) == AccChainService.acc_chain.wallet.public_key: 
-            return json.dumps( {
+            return json.dumps( { 
                 #Devolvemos la firma del bloque en ba64 
                 "signature": HashManager.encode_signature(  AccChainService.acc_chain.wallet.sign(args["block_hash"])) 
             })
+        print("EL LEADER QUE TENEMOS EN NUESTRA CHAIN ES ")
+        print(AccChainService.acc_chain.get_leader( ) )
+        print("LA WALLET QUE TENEMOS ES")
+        print( AccChainService.acc_chain.wallet.public_key)
         #Si no somos el validador, enviamos al resto de los nodos para que alguno nos lo firme
-        for node in AccChainService.peers: 
-            if node != request.host_url:
-                response = requests.get('{}/sign'.format(node) , params= args  ).json()
-                if response["signature"] != "0": 
-                    print("ESTAMOS ENTRANOD A DEVOLVER LA FIRMA")
-                    print(response)
-                    return json.dumps( response)
+        #for validator in AccChainService.acc_chain.validators.rest_addresses.keys(): 
+        #if request.host_url != AccChainService.acc_chain.validators.rest_addresses[validator]:
+        response = requests.get('{}/sign'.format(AccChainService.acc_chain.validators.rest_addresses[AccChainService.acc_chain.get_leader() ]) , params= args  ).json()
+        #if response["signature"] != "0": 
+        #print("ESTAMOS ENTRANOD A DEVOLVER LA FIRMA")
+        #print(response)
+        return json.dumps( response)
+        '''
         return json.dumps( {
             "signature": "0"
         })
+        '''
 
     #ENDPOINT PARA SACAR EL DATASET DE UN VALIDADOR
     @app.route('/dataset' , methods=["GET"])

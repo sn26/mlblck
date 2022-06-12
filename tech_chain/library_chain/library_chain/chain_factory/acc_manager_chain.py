@@ -91,13 +91,13 @@ class AccManagerChain:
             elif itransact["transaction"] == TransactionTypes.ADDSTAKE: 
                 self.accounts.add_address(itransact["pk"])
                 self.validators.addStake( itransact["pk"], 
-                itransact["amount"] )
+                int( itransact["amount"]) )
             elif itransact["transaction" ] == TransactionTypes.ADDVALDATASTAKE: 
                 self.validators.addValidationData( itransact["pk"], itransact["dataset"])
             elif itransact["transaction"] == TransactionTypes.ADDADDRESS: 
                 self.accounts.add_address(itransact["pk"]) #Añadimos una nuevacuenta con balance 0
             elif itransact["transaction"] == TransactionTypes.ADDTRANSACTION: 
-                self.accounts.transfer(itransact["pk"], itransact["to"], itransact["amount"])
+                self.accounts.transfer(itransact["pk"], itransact["to"], int( itransact["amount"]) )
         return
 
     #METODOS PARA REALIZAR EL PROOF DE LAS CADENAS
@@ -128,7 +128,8 @@ class AccManagerChain:
         return True 
 
     #Comprobamos que el que firmó el bloque se encuentre entre nuestros validadores
-    def get_leader_by_block(self, block): 
+    @classmethod
+    def get_leader_by_block(cls, block): 
         validators = BlockRequestsSender.get_validators( BlockRequestsSender.chain.user_chain ) #Sacamos los usuarios validadores desde nuestra chain
         #No podemos sacarlo de nuestros parametros, por lo que tendremos que enviar una req para recogerlos
         for key in validators.keys(): 
@@ -137,8 +138,9 @@ class AccManagerChain:
         return None
     
     #Funciion para verificar los lideres de nuestros bloque s
-    def verify_leader(self, block): 
-        if self.get_leader_by_block(self, block ) != None: 
+    @classmethod
+    def verify_leader(cls, block): 
+        if cls.get_leader_by_block( block ) != None: 
             return True
         return False
 
@@ -163,13 +165,13 @@ class AccManagerChain:
             print(block_hash_cp == block_hash)
             print(last_block.get_hash() == block.previous_hash)
             print(cls.check_validity_transactions( block) )
-            print(cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )))
-            print(cls.verify_leader( cls, block))
-            if block_hash_cp == block_hash and last_block.get_hash() == block.previous_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )) and cls.verify_leader( cls, block): 
+            print(cls.verify_sign_block(cls, block , cls.get_leader_by_block( block )))
+            print(cls.verify_leader(  block))
+            if block_hash_cp == block_hash and last_block.get_hash() == block.previous_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block( block )) and cls.verify_leader( block): 
                 return True
         block_hash_cp = HashManager.get_entire_block_hash(block)
         #Si el bloque ha sido firmado correctamente, y ha sido firmado por un leader, lo daremos por bueno
-        if block_hash_cp == block_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block(cls, block )) and cls.verify_leader( cls, block): 
+        if block_hash_cp == block_hash and cls.check_validity_transactions( block) and  cls.verify_sign_block(cls, block , cls.get_leader_by_block( block )) and cls.verify_leader(block): 
             print("EL PRIMER BLOQUE HA DADO POSITIVO")
             return True 
         return False 
@@ -199,7 +201,11 @@ class AccManagerChain:
             block.hash = block.get_hash()
             print("LA USER CHAIN ES CON LA QUE VAMOS A INTENTAR FIRMAR ES ")
             print(BlockRequestsSender.chain.user_chain)
-            block.signature =  HashManager.encode_signature( BlockRequestsSender.sign_leader( BlockRequestsSender.chain.user_chain  + "/sign", block.get_hash( )) )
+            if block.signature == None: 
+                block.signature =  HashManager.encode_signature( BlockRequestsSender.sign_leader( BlockRequestsSender.chain.user_chain  + "/sign", block.get_hash( )) )
+            elif self.verify_sign_block( block , self.get_leader_by_block( block )) == False or self.verify_leader( block) == False: 
+                return False
+               
             print( block.to_string( ))
             self.chain.append(block)
             #Una vez hemos añadido el bloque, pasamos a ejecutarlo
