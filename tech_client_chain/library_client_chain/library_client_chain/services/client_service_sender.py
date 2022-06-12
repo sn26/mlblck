@@ -109,10 +109,10 @@ class ClientServiceSender:
 
 
     #Funcion que usaremos para añadir una validador y datos para ese validador
-    def add_validator(self, amount, fee   ): 
+    def add_validator(self, amount, fee, host, port    ): 
         transaction = {"fee": fee  , "amount":amount  ,
             "pk": self.wallet.public_key, "signature":"0" , "timestamp": 0 ,
-            "to": "0", "digest": 0, "validator_endpoint_address": "http://" + self.host , "dataset": [] }
+            "to": "0", "digest": 0, "validator_endpoint_address": "http://" + host + ":" + port, "dataset": [] }
         res, signature= self.generate_encoded_transaction_and_signature( transaction ) 
         return self.clr_sender.add_validator( res , signature  ) #Enviamos la peticion para ser un validador 
 
