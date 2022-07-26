@@ -35,22 +35,23 @@ class ImgChainTooler:
             print("PASAMOS EL AJUSTE")
         return X
     ''' 
-
+    #counter = 0
     #Necesitamos sacar la imagen 
     #Function to set the data from an image sent by the client and adjust it to the cnn model format (Returns a numpy array )
     @staticmethod 
     def load_image_data(img ):
         #img = Image.open(img_path)
         #Function that encodes a char string into base64 byte string.
+        
         linea_bytes = img.encode('ascii')
         cad = base64.encodebytes(linea_bytes)
         cad_def = cad
         while len(cad_def) < 3072:
             cad_def = cad_def + cad
-        '''
-        img = Image.frombytes("RGB", (ImgChainTooler.img_rows,ImgChainTooler.img_cols), cad_def)
-        img = img.resize((ImgChainTooler.img_rows, ImgChainTooler.img_cols)) #Resizing the image
-        '''
+        #img2 = Image.frombytes("RGB", (ImgChainTooler.img_rows,ImgChainTooler.img_cols), cad_def)
+        #img2 = img2.resize((ImgChainTooler.img_rows, ImgChainTooler.img_cols)) #Resizing the image
+        #img2.save("/mnt/d/OneDrive/Escritorio/TFMIMG/buffer" + str(ImgChainTooler.counter) + ".jpg" )
+        #ImgChainTooler.counter = ImgChainTooler.counter + 1 
         return cad_def #Devolvemos el base64 que luego en la chain contaremos con la funcion preprocessor para transformarlo a imagen
         '''
         #print(img.size)
