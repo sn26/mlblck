@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 #from library_chain.transactions import Transactionf
 from library_chain.models import HashManager
+import json
 
 class Wallet: 
 
@@ -14,6 +15,19 @@ class Wallet:
         self.private_key_obj, self.public_key_obj = self.gen_key_pair()
         self.private_key, self.public_key = self.get_hex_pair( self.private_key_obj, self.public_key_obj, secret)
         return
+    
+    def set_chain_wallet( self, file_path ): #Aunque otro nodo establezca su wallet aqui como adm, esta será rechazada en el consenso por el resto de nodos
+        #Serializamos la clave publica y la privada, respecto a las que tenemos nosotros dentro de nuestra chain
+        # Opening JSON file
+        f = open(file_path) #En el resto de los nodos, no pasaremos ni la private key ni la password
+        # returns JSON object as 
+        # a dictionary
+        adm = json.load(f)
+        #Nos da igual el secret que pongamos porque se lo vamos a cambiar con el file
+        self.private_key_obj = self.serialize_private_key_from_hex(adm["private_key"], adm["password"])
+        self.public_key_obj = self.serialize_public_key_from_hex( adm["public_key"])
+        self.private_key, self.public_key = self.get_hex_pair(self.private_key_obj  , self.public_key_obj, adm["password"])
+        return self
     
     def get_hex_pair( self , private_key_obj, public_key_obj, secret):
         return private_key_obj.private_bytes(
@@ -48,6 +62,8 @@ class Wallet:
             public_exponent=65537,
             key_size=2048
         )
+       
+       
         return private_key, private_key.public_key()
 
     #To come a user validator he will need a verified dataset which will be used to validate transaction weights 

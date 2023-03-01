@@ -106,8 +106,6 @@ class ClientServiceSender:
     ############################################################
 
 
-
-
     #Funcion que usaremos para añadir una validador y datos para ese validador
     def add_validator(self, amount, fee, host, port    ): 
         transaction = {"fee": fee  , "amount":amount  ,

@@ -8,7 +8,7 @@ from library_chain.transactions import TransactionTypes
 import json
 import base64
 import gzip
-from library_chain.service_factory import ServiceTools
+from library_chain.service_tools import ServiceTools
 from library_chain.models import BlockSerializer
 from library_chain.models import HashManager
 app = Flask(__name__)

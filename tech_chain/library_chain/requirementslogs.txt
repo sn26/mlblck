@@ -1,7 +1,4 @@
 absl-py==0.15.0
-actions-client-cnn==1.1.0
-actions-ctfserver-cnn==1.1.0
-actions-server-cnn==1.1.0
 aniso8601==9.0.1
 astor==0.8.1
 astunparse==1.6.3
@@ -34,10 +31,6 @@ keras==2.6.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.2
 kiwisolver==1.3.1
-library-chain==1.1.0
-library-client-cnn==1.1.0
-library-ctfserver-cnn==1.1.0
-library-server-cnn==1.1.0
 Markdown==3.3.6
 MarkupSafe==2.0.0
 matplotlib==3.3.4
@@ -46,7 +39,6 @@ numpy==1.19.5
 oauthlib==3.2.0
 opt-einsum==3.3.0
 Pillow==8.1.1
-pkg_resources==0.0.0
 pkgconfig==1.5.5
 ply==3.11
 protobuf==4.0.0rc2
@@ -61,6 +53,7 @@ PyYAML==6.0
 requests==2.27.1
 requests-oauthlib==1.3.1
 rsa==4.8
+setuptools
 scikit-image==0.16.1
 scipy==1.4.1
 six==1.15.0

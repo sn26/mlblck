@@ -38,6 +38,9 @@ class AccManagerChain:
         return
     
     def set_chain_wallet( self, file_path ): #Aunque otro nodo establezca su wallet aqui como adm, esta será rechazada en el consenso por el resto de nodos
+        self.wallet = Wallet("00")
+        self.wallet = self.wallet.set_chain_wallet(file_path) #LLamamos a la func definida en la wallet 
+        ''' 
         #Serializamos la clave publica y la privada, respecto a las que tenemos nosotros dentro de nuestra chain
         # Opening JSON file
         f = open(file_path) #En el resto de los nodos, no pasaremos ni la private key ni la password
@@ -48,7 +51,8 @@ class AccManagerChain:
         self.wallet.private_key_obj = self.wallet.serialize_private_key_from_hex(adm["private_key"], adm["password"])
         self.wallet.public_key_obj = self.wallet.serialize_public_key_from_hex( adm["public_key"])
         self.wallet.private_key, self.wallet.public_key = self.wallet.get_hex_pair(self.wallet.private_key_obj  , self.wallet.public_key_obj, adm["password"])
-        return 
+        return
+        '''  
     
 
     @property 

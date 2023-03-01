@@ -1,4 +1,4 @@
-from library_chain.proof_factory import ProofOfLearning
+from proof_of_learning_module.proof_of_learning import ProofOfLearning
 #from library_chain.proof_factory import ProofOfStake
 
 class ProofFactory: 
